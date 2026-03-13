@@ -1,8 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, User, AlertCircle, Loader2 } from 'lucide-react';
+import { User, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { domains } from '../data/mockData';
+
+const domainToUsernameMap: Record<string, string> = {
+    'Healthcare Technology': 'healthcare',
+    'AI / Generative AI': 'genai',
+    'Open Innovation': 'open',
+    'Cybersecurity': 'cybersecurity',
+    'Disaster Prediction & Response': 'disaster',
+    'Climate & Environmental Intelligence': 'evs',
+    'IoT & Smart Cities': 'iot'
+};
 
 export default function Login() {
     const [domain, setDomain] = useState('');
@@ -82,7 +92,7 @@ export default function Login() {
                                     <option value="" disabled className="text-slate-500">Select your domain account</option>
                                     <option value="admin" className="bg-[#1C1C1E] text-white font-semibold">Admin (All Access)</option>
                                     {domains.map(d => (
-                                        <option key={d} value={d} className="bg-[#1C1C1E] text-white">{d}</option>
+                                        <option key={d} value={domainToUsernameMap[d]} className="bg-[#1C1C1E] text-white">{d}</option>
                                     ))}
                                 </select>
                             </div>
