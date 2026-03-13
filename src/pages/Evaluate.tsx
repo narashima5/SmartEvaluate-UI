@@ -12,8 +12,17 @@ export default function Evaluate() {
     useEffect(() => {
         fetch('https://smartevaluate-api.onrender.com/api/teams')
             .then(res => res.json())
-            .then(data => setTeamsState(data))
-            .catch(err => console.error('Error fetching teams:', err));
+            .then(data => {
+                if (data && data.length > 0) {
+                    setTeamsState(data);
+                } else {
+                    import('../data/mockData').then(module => setTeamsState(module.mockTeams));
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching teams:', err);
+                import('../data/mockData').then(module => setTeamsState(module.mockTeams));
+            });
     }, []);
 
     const processedTeamsState = teamsState.map(team => {
