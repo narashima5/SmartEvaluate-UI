@@ -12,7 +12,14 @@ export default function Evaluate() {
     useEffect(() => {
         fetch('/api/teams')
             .then(res => res.json())
-            .then(data => setTeamsState(data))
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setTeamsState(data);
+                } else {
+                    console.error('API returned non-array data:', data);
+                    setTeamsState([]);
+                }
+            })
             .catch(err => console.error('Error fetching teams:', err));
     }, []);
 

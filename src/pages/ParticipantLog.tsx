@@ -14,7 +14,14 @@ export default function ParticipantLog() {
     useEffect(() => {
         fetch('/api/teams')
             .then(res => res.json())
-            .then(data => setTeams(data))
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setTeams(data);
+                } else {
+                    console.error('API returned non-array data:', data);
+                    setTeams([]);
+                }
+            })
             .catch(err => console.error('Error fetching teams:', err));
     }, []);
 
