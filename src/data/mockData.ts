@@ -161,6 +161,16 @@ export const mockTeams: Team[] = [
         college: "National IT Hub",
         leaderEmail: "mike@nith.edu",
         leaderPhone: "+1 (555) 111-2233"
+    },
+    {
+        id: "T-006",
+        name: "Data Miners",
+        members: ["Sherlock Holmes", "John Watson"],
+        domain: "AI / Generative AI",
+        location: "Block E - Table 42",
+        college: "Analytics University",
+        leaderEmail: "sherlock@analytics.edu",
+        leaderPhone: "+1 (555) 999-8888"
     }
 ];
 
