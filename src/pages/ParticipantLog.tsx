@@ -3,8 +3,10 @@ import { Search, Filter, QrCode, ChevronDown, ChevronUp, MapPin, GraduationCap, 
 import { domains, type Domain, type Team, parseDomain } from '../data/mockData';
 import { cn } from '../components/Sidebar';
 import QRScanner from '../components/QRScanner';
+import { useAuth } from '../context/AuthContext';
 
 export default function ParticipantLog() {
+    const { token } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDomain, setSelectedDomain] = useState<Domain | 'All'>('All');
     const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
@@ -12,7 +14,13 @@ export default function ParticipantLog() {
     const [teams, setTeams] = useState<Team[]>([]);
 
     useEffect(() => {
-        fetch('/api/teams')
+        if (!token) return;
+
+        fetch('/api/teams', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {
@@ -23,7 +31,7 @@ export default function ParticipantLog() {
                 }
             })
             .catch(err => console.error('Error fetching teams:', err));
-    }, []);
+    }, [token]);
 
     const processedTeams = teams.map(team => {
         const name = team['Team Name'] || team.name || 'Unknown Team';
@@ -78,12 +86,17 @@ export default function ParticipantLog() {
             }
             const res = await fetch('/api/teams', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(teamData)
             });
 
             if (res.ok) {
-                const refreshed = await fetch('/api/teams');
+                const refreshed = await fetch('/api/teams', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const newTeams = await refreshed.json();
                 setTeams(newTeams);
             } else {
@@ -102,7 +115,8 @@ export default function ParticipantLog() {
         if (window.confirm(`Are you sure you want to permanently delete team ${name} (${id})? This will remove them from the database.`)) {
             try {
                 const res = await fetch(`/api/teams/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (res.ok) {

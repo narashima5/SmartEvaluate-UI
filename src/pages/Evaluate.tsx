@@ -2,15 +2,21 @@ import { useEffect, useState } from 'react';
 import { Search, Filter, ChevronDown, ChevronUp, Users, CheckCircle, Lock } from 'lucide-react';
 import { domains, type Team, type Domain, EVALUATION_CRITERIA, parseDomain } from '../data/mockData';
 import { cn } from '../components/Sidebar';
+import { useAuth } from '../context/AuthContext';
 
 export default function Evaluate() {
+    const { token } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDomain, setSelectedDomain] = useState<Domain | 'All'>('All');
     const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
     const [teamsState, setTeamsState] = useState<Team[]>([]);
 
     useEffect(() => {
-        fetch('/api/teams')
+        if (!token) return;
+
+        fetch('/api/teams', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {
@@ -21,7 +27,7 @@ export default function Evaluate() {
                 }
             })
             .catch(err => console.error('Error fetching teams:', err));
-    }, []);
+    }, [token]);
 
     const processedTeamsState = teamsState.map(team => {
         const name = team['Team Name'] || team.name || 'Unknown Team';
@@ -70,7 +76,10 @@ export default function Evaluate() {
         try {
             const res = await fetch('/api/teams', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(updatedTeam)
             });
             if (!res.ok) {
