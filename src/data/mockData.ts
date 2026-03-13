@@ -111,68 +111,7 @@ export const EVALUATION_CRITERIA: Record<Domain, { r1: string[], r2: string[], r
     }
 };
 
-export const mockTeams: Team[] = [
-    {
-        id: "T-001",
-        name: "Byte Builders",
-        members: ["Alice Smith", "Bob Jones", "Charlie Brown", "Diana Prince"],
-        domain: "IoT & Smart Cities",
-        location: "Block A - Table 12",
-        college: "Tech University",
-        leaderEmail: "alice@techu.edu",
-        leaderPhone: "+1 (555) 123-4567"
-    },
-    {
-        id: "T-002",
-        name: "Neural Ninjas",
-        members: ["Eve Adams", "Frank Castle", "Grace Hopper"],
-        domain: "AI / Generative AI",
-        location: "Block B - Table 04",
-        college: "Institute of Science",
-        leaderEmail: "eve@ios.edu",
-        leaderPhone: "+1 (555) 987-6543"
-    },
-    {
-        id: "T-003",
-        name: "Chain Breakers",
-        members: ["Hank Pym", "Ian Malcolm"],
-        domain: "Cybersecurity",
-        location: "Block C - Table 22",
-        college: "State College",
-        leaderEmail: "hank@state.edu",
-        leaderPhone: "+1 (555) 555-0100"
-    },
-    {
-        id: "T-004",
-        name: "App Avengers",
-        members: ["Jackie Chan", "Kevin Bacon", "Laura Croft"],
-        domain: "Healthcare Technology",
-        location: "Block A - Table 15",
-        college: "Tech University",
-        leaderEmail: "jackie@techu.edu",
-        leaderPhone: "+1 (555) 321-0987"
-    },
-    {
-        id: "T-005",
-        name: "Cyber Sentinels",
-        members: ["Mike Ross", "Nina Williams"],
-        domain: "Climate & Environmental Intelligence",
-        location: "Block D - Table 01",
-        college: "National IT Hub",
-        leaderEmail: "mike@nith.edu",
-        leaderPhone: "+1 (555) 111-2233"
-    },
-    {
-        id: "T-006",
-        name: "Data Miners",
-        members: ["Sherlock Holmes", "John Watson"],
-        domain: "AI / Generative AI",
-        location: "Block E - Table 42",
-        college: "Analytics University",
-        leaderEmail: "sherlock@analytics.edu",
-        leaderPhone: "+1 (555) 999-8888"
-    }
-];
+export const mockTeams: Team[] = [];
 
 export const domains: Domain[] = [
     'AI / Generative AI',
