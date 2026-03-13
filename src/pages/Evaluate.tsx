@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Search, Filter, ChevronDown, ChevronUp, Users, CheckCircle, Lock } from 'lucide-react';
-import { domains, type Team, type Domain, EVALUATION_CRITERIA, parseDomain } from '../data/mockData';
+import { domains, type Team, type Domain, EVALUATION_CRITERIA, parseDomain } from '../types';
 import { cn } from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
 
@@ -83,8 +83,12 @@ export default function Evaluate() {
                 body: JSON.stringify(updatedTeam)
             });
             if (!res.ok) {
+                const errorData = await res.json();
                 console.error("Failed to save evaluation to backend");
-                // Optional: Revert UI state on failure
+                alert(`Error: ${errorData.error || "You are not authorized to evaluate this team."}`);
+
+                // Revert UI state on failure
+                setTeamsState(prev => prev.map(t => t.id === id ? teamToUpdate : t));
             }
         } catch (e) {
             console.error("Error communicating with backend:", e);

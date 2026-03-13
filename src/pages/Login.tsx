@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, Lock, AlertCircle, Loader2 } from 'lucide-react';
-import { domains } from '../data/mockData';
+import { domains } from '../types';
 
 const domainToUsernameMap: Record<string, string> = {
     'Healthcare Technology': 'healthcare',

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import type { Domain } from '../data/mockData';
+import type { Domain } from '../types';
 
 interface User {
     username: string;

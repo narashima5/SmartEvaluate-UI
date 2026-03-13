@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Filter, QrCode, ChevronDown, ChevronUp, MapPin, GraduationCap, Mail, Phone, Users, X, Trash2 } from 'lucide-react';
-import { domains, type Domain, type Team, parseDomain } from '../data/mockData';
+import { domains, type Domain, type Team, parseDomain } from '../types';
 import { cn } from '../components/Sidebar';
 import QRScanner from '../components/QRScanner';
 import { useAuth } from '../context/AuthContext';
@@ -100,7 +100,9 @@ export default function ParticipantLog() {
                 const newTeams = await refreshed.json();
                 setTeams(newTeams);
             } else {
+                const errorData = await res.json();
                 console.error("Failed to register team with backend.");
+                alert(`Error: ${errorData.error || "You are not authorized to add teams for this domain."}`);
             }
         } catch (e) {
             console.error("Failed to parse or save QR data:", e);
@@ -123,8 +125,9 @@ export default function ParticipantLog() {
                     setTeams(prev => prev.filter(t => t.id !== id));
                     if (expandedTeamId === id) setExpandedTeamId(null);
                 } else {
+                    const errorData = await res.json();
                     console.error("Failed to delete team");
-                    alert("Failed to delete team from database.");
+                    alert(`Error: ${errorData.error || "You cannot delete teams. Only administrators have this permission."}`);
                 }
             } catch (err) {
                 console.error("Error deleting team:", err);

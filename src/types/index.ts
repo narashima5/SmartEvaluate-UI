@@ -50,11 +50,9 @@ export interface Team {
     'Order ID'?: number | string;
     'Ticket ID'?: number | string;
 
-    // We still need an id for React mapping, and name for basic fallbacks
     id: string;
     name?: string;
 
-    // Evaluation fields
     problemStatement?: string;
     r1_1?: number; r1_2?: number; r1_3?: number; r1_4?: number;
     r2_1?: number; r2_2?: number; r2_3?: number; r2_4?: number;
@@ -64,7 +62,6 @@ export interface Team {
     isRound2Locked?: boolean;
     isRound3Locked?: boolean;
 
-    // Legacy fields for mock data and fallback
     members?: string[];
     domain?: Domain;
     location?: string;
@@ -110,8 +107,6 @@ export const EVALUATION_CRITERIA: Record<Domain, { r1: string[], r2: string[], r
         r3: ['Working Model 100%', 'Technical Implementation', 'Overall Explanation', 'Scalability in Real world']
     }
 };
-
-export const mockTeams: Team[] = [];
 
 export const domains: Domain[] = [
     'AI / Generative AI',
