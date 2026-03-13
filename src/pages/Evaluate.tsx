@@ -10,7 +10,7 @@ export default function Evaluate() {
     const [teamsState, setTeamsState] = useState<Team[]>([]);
 
     useEffect(() => {
-        fetch('https://smartevaluate-api.onrender.com/api/teams')
+        fetch('https://smartevaluate-api.railway.internal/api/teams')
             .then(res => res.json())
             .then(data => {
                 if (data && data.length > 0) {
@@ -70,7 +70,7 @@ export default function Evaluate() {
         setTeamsState(prev => prev.map(t => t.id === id ? updatedTeam : t));
 
         try {
-            const res = await fetch('https://smartevaluate-api.onrender.com/api/teams', {
+            const res = await fetch('https://smartevaluate-api.railway.internal/api/teams', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedTeam)
