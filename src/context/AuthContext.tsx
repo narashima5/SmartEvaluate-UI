@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import type { Domain } from '../data/mockData';
 
 interface User {
@@ -17,25 +17,20 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(null);
-
-    useEffect(() => {
-        // Load token and user from localStorage on initial render
-        const storedToken = localStorage.getItem('token');
+    const [user, setUser] = useState<User | null>(() => {
         const storedUser = localStorage.getItem('user');
-
-        if (storedToken && storedUser) {
-            setToken(storedToken);
+        if (storedUser) {
             try {
-                setUser(JSON.parse(storedUser));
+                return JSON.parse(storedUser);
             } catch (e) {
                 console.error("Failed to parse stored user", e);
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
             }
         }
-    }, []);
+        return null;
+    });
+    const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
 
     const login = (newToken: string, newUser: User) => {
         setToken(newToken);
