@@ -12,7 +12,7 @@ export default function ParticipantLog() {
     const [teams, setTeams] = useState<Team[]>([]);
 
     useEffect(() => {
-        fetch('https://smartevaluate-api.railway.internal/api/teams')
+        fetch('http://13.51.173.229:5000/api/teams')
             .then(res => res.json())
             .then(data => setTeams(data))
             .catch(err => console.error('Error fetching teams:', err));
@@ -69,14 +69,14 @@ export default function ParticipantLog() {
             if (!teamData.name) {
                 teamData.name = teamData['Team Name'] || 'Unknown Team';
             }
-            const res = await fetch('https://smartevaluate-api.railway.internal/api/teams', {
+            const res = await fetch('http://13.51.173.229:5000/api/teams', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(teamData)
             });
 
             if (res.ok) {
-                const refreshed = await fetch('https://smartevaluate-api.railway.internal/api/teams');
+                const refreshed = await fetch('http://13.51.173.229:5000/api/teams');
                 const newTeams = await refreshed.json();
                 setTeams(newTeams);
             } else {
@@ -94,7 +94,7 @@ export default function ParticipantLog() {
 
         if (window.confirm(`Are you sure you want to permanently delete team ${name} (${id})? This will remove them from the database.`)) {
             try {
-                const res = await fetch(`https://smartevaluate-api.railway.internal/api/teams/${id}`, {
+                const res = await fetch(`http://13.51.173.229:5000/api/teams/${id}`, {
                     method: 'DELETE'
                 });
 

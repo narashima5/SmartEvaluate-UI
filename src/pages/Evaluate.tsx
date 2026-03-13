@@ -10,7 +10,7 @@ export default function Evaluate() {
     const [teamsState, setTeamsState] = useState<Team[]>([]);
 
     useEffect(() => {
-        fetch('https://smartevaluate-api.railway.internal/api/teams')
+        fetch('http://13.51.173.229:5000/api/teams')
             .then(res => res.json())
             .then(data => setTeamsState(data))
             .catch(err => console.error('Error fetching teams:', err));
@@ -61,7 +61,7 @@ export default function Evaluate() {
         setTeamsState(prev => prev.map(t => t.id === id ? updatedTeam : t));
 
         try {
-            const res = await fetch('https://smartevaluate-api.railway.internal/api/teams', {
+            const res = await fetch('http://13.51.173.229:5000/api/teams', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedTeam)
