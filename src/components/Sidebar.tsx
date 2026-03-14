@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Users, ClipboardCheck, LogOut, UserCircle } from 'lucide-react';
+import { Users, ClipboardCheck, LogOut, UserCircle, Trophy } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +11,7 @@ export function cn(...inputs: ClassValue[]) {
 const navItems = [
     { path: '/participants', label: 'Participant Log', icon: Users },
     { path: '/evaluate', label: 'Evaluate', icon: ClipboardCheck },
+    { path: '/leaderboard', label: 'Leaderboard', icon: Trophy },
 ];
 
 interface SidebarProps {
