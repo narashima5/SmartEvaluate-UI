@@ -23,7 +23,7 @@ export default function Leaderboard() {
 
         try {
             // For admin, append domain query param if not 'All'
-            let url = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/leaderboard`;
+            let url = `/api/leaderboard`;
             if (user?.role === 'admin' && selectedDomain !== 'All') {
                 url += `?domain=${encodeURIComponent(selectedDomain)}`;
             }
