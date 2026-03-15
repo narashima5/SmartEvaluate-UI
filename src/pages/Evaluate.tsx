@@ -54,6 +54,10 @@ export default function Evaluate() {
         const matchesSearch = team.displayData.name.toLowerCase().includes(searchQuery.toLowerCase()) || team.id.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesDomain = selectedDomain === 'All' || team.displayData.domain === selectedDomain;
         return matchesSearch && matchesDomain;
+    }).sort((a, b) => {
+        const tailA = String(a.id || '').slice(-2);
+        const tailB = String(b.id || '').slice(-2);
+        return tailA.localeCompare(tailB, undefined, { numeric: true });
     });
 
     const toggleExpand = (id: string) => {
@@ -62,6 +66,19 @@ export default function Evaluate() {
 
     const handleInputChange = (id: string, field: keyof Team, value: string | number) => {
         setTeamsState(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
+    };
+
+    const handleMarkChange = (id: string, field: keyof Team, val: string) => {
+        if (val === '') {
+            handleInputChange(id, field, '');
+            return;
+        }
+        let num = parseInt(val, 10);
+        if (!isNaN(num)) {
+            if (num > 25) num = 25;
+            if (num < 0) num = 0;
+            handleInputChange(id, field, num);
+        }
     };
 
     const lockEvaluation = async (id: string, field: 'isProblemStatementLocked' | 'isRound1Locked' | 'isRound2Locked' | 'isRound3Locked') => {
@@ -195,6 +212,10 @@ export default function Evaluate() {
                                                 Team Members
                                             </div>
                                             <div className="flex flex-wrap gap-2 mt-2">
+                                                <span className={`text-xs text-indigo-300 bg-indigo-500/10 border-indigo-500/30 px-2.5 py-1 rounded-md border flex items-center gap-1.5`}>
+                                                    {team['Team Leader Name']}
+                                                    <span className="text-[10px] font-semibold tracking-wider uppercase text-indigo-400 opacity-80">(Leader)</span>
+                                                </span>
                                                 {team.displayData.members.map((member, idx) => {
                                                     // Check if this member is the leader based on 'Team Leader Name' or default to first member (idx === 0)
                                                     const isLeader = team['Team Leader Name'] ? member === team['Team Leader Name'] : idx === 0;
@@ -246,7 +267,7 @@ export default function Evaluate() {
                                                 {/* Round 1 */}
                                                 <div className="bg-white/5 rounded-xl p-4 border border-white/5">
                                                     <div className="flex items-center justify-between mb-4">
-                                                        <h4 className="text-sm font-semibold text-indigo-400">Round 1 (Max 100)</h4>
+                                                        <h4 className="text-sm font-semibold text-indigo-400">Round 1: The Council Of the Seven Kingdoms (Max 100)</h4>
                                                         {!team.isRound1Locked ? (
                                                             <button
                                                                 onClick={() => lockEvaluation(team.id, 'isRound1Locked')}
@@ -269,7 +290,7 @@ export default function Evaluate() {
                                                                     min="0"
                                                                     max="25"
                                                                     value={team[`r1_${idx + 1}` as keyof Team] as number || ''}
-                                                                    onChange={(e) => handleInputChange(team.id, `r1_${idx + 1}` as keyof Team, parseInt(e.target.value))}
+                                                                    onChange={(e) => handleMarkChange(team.id, `r1_${idx + 1}` as keyof Team, e.target.value)}
                                                                     disabled={team.isRound1Locked}
                                                                     className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-center outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-600 text-sm"
                                                                     placeholder="/ 25"
@@ -282,7 +303,7 @@ export default function Evaluate() {
                                                 {/* Round 2 */}
                                                 <div className="bg-white/5 rounded-xl p-4 border border-white/5">
                                                     <div className="flex items-center justify-between mb-4">
-                                                        <h4 className="text-sm font-semibold text-indigo-400">Round 2 (Max 100)</h4>
+                                                        <h4 className="text-sm font-semibold text-indigo-400">Round 2: Forging the Valyrian Code (Max 100)</h4>
                                                         {!team.isRound2Locked ? (
                                                             <button
                                                                 onClick={() => lockEvaluation(team.id, 'isRound2Locked')}
@@ -305,7 +326,7 @@ export default function Evaluate() {
                                                                     min="0"
                                                                     max="25"
                                                                     value={team[`r2_${idx + 1}` as keyof Team] as number || ''}
-                                                                    onChange={(e) => handleInputChange(team.id, `r2_${idx + 1}` as keyof Team, parseInt(e.target.value))}
+                                                                    onChange={(e) => handleMarkChange(team.id, `r2_${idx + 1}` as keyof Team, e.target.value)}
                                                                     disabled={team.isRound2Locked}
                                                                     className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-center outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-600 text-sm"
                                                                     placeholder="/ 25"
@@ -318,7 +339,7 @@ export default function Evaluate() {
                                                 {/* Round 3 */}
                                                 <div className="bg-white/5 rounded-xl p-4 border border-white/5">
                                                     <div className="flex items-center justify-between mb-4">
-                                                        <h4 className="text-sm font-semibold text-indigo-400">Round 3 (Max 100)</h4>
+                                                        <h4 className="text-sm font-semibold text-indigo-400">Round 3: Battle for the Throne (Max 100)</h4>
                                                         {!team.isRound3Locked ? (
                                                             <button
                                                                 onClick={() => lockEvaluation(team.id, 'isRound3Locked')}
@@ -341,7 +362,7 @@ export default function Evaluate() {
                                                                     min="0"
                                                                     max="25"
                                                                     value={team[`r3_${idx + 1}` as keyof Team] as number || ''}
-                                                                    onChange={(e) => handleInputChange(team.id, `r3_${idx + 1}` as keyof Team, parseInt(e.target.value))}
+                                                                    onChange={(e) => handleMarkChange(team.id, `r3_${idx + 1}` as keyof Team, e.target.value)}
                                                                     disabled={team.isRound3Locked}
                                                                     className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-center outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-600 text-sm"
                                                                     placeholder="/ 25"

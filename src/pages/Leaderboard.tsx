@@ -115,7 +115,7 @@ export default function Leaderboard() {
                                 <th scope="col" className="px-6 py-4 font-semibold text-center w-24">Rank</th>
                                 <th scope="col" className="px-6 py-4 font-semibold">Team Details</th>
                                 <th scope="col" className="px-6 py-4 font-semibold hidden md:table-cell">Domain</th>
-                                <th scope="col" className="px-6 py-4 font-semibold text-right">Total Score</th>
+                                <th scope="col" className="px-6 py-4 font-semibold text-right">Avg Score</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -199,7 +199,7 @@ export default function Leaderboard() {
                                                         index === 2 ? 'text-orange-300' :
                                                             'text-emerald-400'}`}
                                             >
-                                                {team.total_score}
+                                                {Math.round((team.total_score || 0) / 3)}
                                             </div>
                                             <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">pts</div>
                                         </td>

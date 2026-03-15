@@ -6,7 +6,8 @@ import QRScanner from '../components/QRScanner';
 import { useAuth } from '../context/AuthContext';
 
 export default function ParticipantLog() {
-    const { token } = useAuth();
+    const { token, user } = useAuth();
+    const isAdmin = user?.role === 'admin';
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDomain, setSelectedDomain] = useState<Domain | 'All'>('All');
     const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
@@ -62,10 +63,40 @@ export default function ParticipantLog() {
         const matchesSearch = team.displayData.name.toLowerCase().includes(searchQuery.toLowerCase()) || team.id.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesDomain = selectedDomain === 'All' || team.displayData.domain === selectedDomain;
         return matchesSearch && matchesDomain;
+    }).sort((a, b) => {
+        const tailA = String(a.id || '').slice(-2);
+        const tailB = String(b.id || '').slice(-2);
+        return tailA.localeCompare(tailB, undefined, { numeric: true });
     });
 
     const toggleExpand = (id: string) => {
         setExpandedTeamId(expandedTeamId === id ? null : id);
+    };
+
+    const handleUpdateLocation = async (id: string, newLocation: string) => {
+        const teamToUpdate = teams.find(t => t.id === id);
+        if (!teamToUpdate || teamToUpdate.location === newLocation) return;
+
+        const updatedTeam = { ...teamToUpdate, location: newLocation };
+        setTeams(prev => prev.map(t => t.id === id ? updatedTeam : t));
+
+        try {
+            const res = await fetch('/api/teams', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updatedTeam)
+            });
+            if (!res.ok) {
+                console.error("Failed to update location");
+                setTeams(prev => prev.map(t => t.id === id ? teamToUpdate : t));
+            }
+        } catch (e) {
+            console.error("Error updating location:", e);
+            setTeams(prev => prev.map(t => t.id === id ? teamToUpdate : t));
+        }
     };
 
     const handleScanSuccess = async (decodedText: string) => {
@@ -77,8 +108,6 @@ export default function ParticipantLog() {
                 throw new Error("QR Code missing required ID fields");
             }
 
-            // Immediately set the search query to focus the scanned team visually
-            setSearchQuery(finalId);
 
             const teamData = { ...rawData, id: finalId };
             if (!teamData.name) {
@@ -244,13 +273,15 @@ export default function ParticipantLog() {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={(e) => handleDeleteTeam(e, team.id, team.displayData.name)}
-                                        className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors p-2 rounded-full focus:outline-none"
-                                        title="Delete Team"
-                                    >
-                                        <Trash2 className="h-5 w-5" />
-                                    </button>
+                                    {isAdmin && (
+                                        <button
+                                            onClick={(e) => handleDeleteTeam(e, team.id, team.displayData.name)}
+                                            className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors p-2 rounded-full focus:outline-none"
+                                            title="Delete Team"
+                                        >
+                                            <Trash2 className="h-5 w-5" />
+                                        </button>
+                                    )}
                                     <div className="text-slate-400 group-hover:text-blue-400 transition-colors bg-white/5 p-2 rounded-full">
                                         {expandedTeamId === team.id ? (
                                             <ChevronUp className="h-5 w-5" />
@@ -298,7 +329,17 @@ export default function ParticipantLog() {
                                                     <div className="text-xs text-slate-500 mb-1 flex items-center gap-2">
                                                         <MapPin className="h-3 w-3" /> Location
                                                     </div>
-                                                    <div className="text-sm font-medium text-slate-200">{team.displayData.location}</div>
+                                                    {isAdmin ? (
+                                                        <input
+                                                            type="text"
+                                                            defaultValue={team.displayData.location === 'Not Specified' ? '' : team.displayData.location}
+                                                            onBlur={(e) => handleUpdateLocation(team.id, e.target.value)}
+                                                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-slate-600"
+                                                            placeholder="Enter location..."
+                                                        />
+                                                    ) : (
+                                                        <div className="text-sm font-medium text-slate-200">{team.displayData.location}</div>
+                                                    )}
                                                 </div>
                                                 <div className="bg-white/5 rounded-xl p-4 border border-white/5">
                                                     <div className="text-xs text-slate-500 mb-1 flex items-center gap-2">
