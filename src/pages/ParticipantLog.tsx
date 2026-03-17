@@ -208,6 +208,25 @@ export default function ParticipantLog() {
                 </div>
             )}
 
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 text-center sm:text-left">
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex flex-col items-center justify-center col-span-2 lg:col-span-1 shadow-[0_0_15px_rgba(37,99,235,0.05)]">
+                    <span className="text-4xl font-display font-bold text-blue-400">{processedTeams.length}</span>
+                    <span className="text-xs text-blue-400/80 mt-1 uppercase tracking-wider font-semibold">Total Teams</span>
+                </div>
+                <div className="col-span-2 lg:col-span-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3">
+                    {domains.map(d => {
+                        const count = processedTeams.filter(t => t.displayData.domain === d).length;
+                        return (
+                            <div key={d} className="bg-slate-900/40 border border-white/5 rounded-xl p-3 flex flex-col items-center justify-center text-center transition-all hover:bg-slate-900/60 hover:border-white/10 group">
+                                <span className="text-xl font-bold text-slate-200 group-hover:text-blue-400 transition-colors">{count}</span>
+                                <span className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider leading-tight max-w-full px-1">{d}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
             {/* Filters and Search */}
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <div className="relative flex-1">
