@@ -1,405 +1,614 @@
-import { useEffect, useState } from 'react';
-import { Search, Filter, ChevronDown, ChevronUp, Users, CheckCircle, Lock } from 'lucide-react';
-import { domains, type Team, type Domain, EVALUATION_CRITERIA, parseDomain } from '../types';
-import { cn } from '../components/Sidebar';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect } from "react";
+import { api } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
+import GlassCard from "../components/GlassCard";
+import {
+  Search,
+  Sparkles,
+  Loader2,
+  Lock,
+  X,
+  FileText,
+  Plus,
+  Award,
+  BookOpen,
+  Check,
+} from "lucide-react";
+import type { Project, Evaluation } from "../types";
 
 export default function Evaluate() {
-    const { token } = useAuth();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedDomain, setSelectedDomain] = useState<Domain | 'All'>('All');
-    const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
-    const [teamsState, setTeamsState] = useState<Team[]>([]);
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [myEvaluations, setMyEvaluations] = useState<Evaluation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
-    useEffect(() => {
-        if (!token) return;
+  // Scoring Modal States
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [criteriaList, setCriteriaList] = useState<any[]>([]);
+  const [scores, setScores] = useState<Record<string, number>>({});
+  const [remarks, setRemarks] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-        fetch('/api/teams', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setTeamsState(data);
-                } else {
-                    console.error('API returned non-array data:', data);
-                    setTeamsState([]);
-                }
-            })
-            .catch(err => console.error('Error fetching teams:', err));
-    }, [token]);
+  // Spot add states & modals
+  const [showDomainModal, setShowDomainModal] = useState(false);
+  const [showCritModal, setShowCritModal] = useState(false);
+  const [domains, setDomains] = useState<any[]>([]);
 
-    const processedTeamsState = teamsState.map(team => {
-        const name = team['Team Name'] || team.name || 'Unknown Team';
-        let domainRaw = parseDomain(team.Domain || team.domain);
+  // Add Domain Form
+  const [newDomainName, setNewDomainName] = useState("");
+  const [newDomainDesc, setNewDomainDesc] = useState("");
 
-        const extractedMembers: string[] = [];
-        for (let i = 1; i <= 6; i++) {
-            const m = team[`Team Member ${i} Name` as keyof Team];
-            if (m) extractedMembers.push(m as string);
+  // Add Criteria Form
+  const [newCritDomain, setNewCritDomain] = useState("");
+  const [newCritName, setNewCritName] = useState("");
+  const [newCritMax, setNewCritMax] = useState(20);
+  const [newCritDesc, setNewCritDesc] = useState("");
+
+  const fetchDomains = async () => {
+    try {
+      const response = await api.get("/api/evaluations/domains");
+      if (Array.isArray(response)) {
+        setDomains(response);
+        if (response.length > 0) {
+          setNewCritDomain(response[0].name);
         }
-        const members = extractedMembers.length > 0 ? extractedMembers : (team.members || []);
+      }
+    } catch (err) {
+      console.error("Failed to load domains list:", err);
+    }
+  };
 
-        return {
-            ...team,
-            displayData: {
-                name,
-                domain: domainRaw as Domain,
-                members
-            }
-        };
-    });
+  const fetchJuryData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // 1. Fetch projects
+      let projectEndpoint = "/api/projects";
+      // If jury has target_domain, filter by it on frontend to verify
+      const projData = await api.get(projectEndpoint);
+      if (user?.role === "jury" && user.target_domain) {
+        const filtered = projData.filter((p: Project) => p.domain === user.target_domain);
+        setProjects(filtered);
+      } else {
+        setProjects(projData);
+      }
 
-    const filteredTeams = processedTeamsState.filter((team) => {
-        const matchesSearch = team.displayData.name.toLowerCase().includes(searchQuery.toLowerCase()) || team.id.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesDomain = selectedDomain === 'All' || team.displayData.domain === selectedDomain;
-        return matchesSearch && matchesDomain;
-    }).sort((a, b) => {
-        const tailA = String(a.id || '').slice(-2);
-        const tailB = String(b.id || '').slice(-2);
-        return tailA.localeCompare(tailB, undefined, { numeric: true });
-    });
+      // 2. Fetch my submitted evaluations
+      const evalData = await api.get("/api/evaluations/me");
+      setMyEvaluations(evalData);
+    } catch (err: any) {
+      setError(err.message || "Failed to load projects for evaluation.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const toggleExpand = (id: string) => {
-        setExpandedTeamId(expandedTeamId === id ? null : id);
-    };
+  useEffect(() => {
+    fetchJuryData();
+    fetchDomains();
+  }, [search]);
 
-    const handleInputChange = (id: string, field: keyof Team, value: string | number) => {
-        setTeamsState(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
-    };
+  const handleOpenEvaluation = async (project: Project) => {
+    setSelectedProject(project);
+    setRemarks("");
+    setScores({});
+    setCriteriaList([]);
 
-    const handleMarkChange = (id: string, field: keyof Team, val: string) => {
-        if (val === '') {
-            handleInputChange(id, field, '');
-            return;
+    try {
+      // Fetch criteria dynamically for the project's domain
+      const criteria = await api.get(`/api/evaluations/criteria?domain=${encodeURIComponent(project.domain)}`);
+      setCriteriaList(criteria);
+
+      // Check if already evaluated this project
+      const existing = myEvaluations.find(
+        (e) => (typeof e.project === "object" ? e.project._id : e.project) === project._id
+      );
+
+      const initialScores: Record<string, number> = {};
+      if (existing) {
+        setRemarks(existing.remarks || "");
+        if (existing.scores && existing.scores.length > 0) {
+          existing.scores.forEach((s: any) => {
+            initialScores[s.criterionId] = s.marks;
+          });
         }
-        let num = parseInt(val, 10);
-        if (!isNaN(num)) {
-            if (num > 25) num = 25;
-            if (num < 0) num = 0;
-            handleInputChange(id, field, num);
+      }
+
+      // Ensure all criteria have a value of 0 if not previously score-locked
+      criteria.forEach((c: any) => {
+        if (initialScores[c._id] === undefined) {
+          initialScores[c._id] = 0;
         }
-    };
+      });
 
-    const lockEvaluation = async (id: string, field: 'isProblemStatementLocked' | 'isRound1Locked' | 'isRound2Locked' | 'isRound3Locked') => {
-        const teamToUpdate = teamsState.find(t => t.id === id);
-        if (!teamToUpdate) return;
+      setScores(initialScores);
+    } catch (err: any) {
+      setError("Failed to fetch evaluation criteria for this domain.");
+    }
+  };
 
-        const updatedTeam = { ...teamToUpdate, [field]: true };
+  const handleScoreChange = (criterionId: string, val: string, max: number) => {
+    const num = Math.min(max, Math.max(0, parseInt(val) || 0));
+    setScores((prev) => ({
+      ...prev,
+      [criterionId]: num,
+    }));
+  };
 
-        // Optimistically update UI
-        setTeamsState(prev => prev.map(t => t.id === id ? updatedTeam : t));
+  const handleSubmitEvaluation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject) return;
 
-        try {
-            const res = await fetch('/api/teams', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(updatedTeam)
-            });
-            if (!res.ok) {
-                const errorData = await res.json();
-                console.error("Failed to save evaluation to backend");
-                alert(`Error: ${errorData.error || "You are not authorized to evaluate this team."}`);
+    setError(null);
+    setSuccess(null);
+    setSubmitting(true);
 
-                // Revert UI state on failure
-                setTeamsState(prev => prev.map(t => t.id === id ? teamToUpdate : t));
-            }
-        } catch (e) {
-            console.error("Error communicating with backend:", e);
-        }
-    };
+    const scoresArray = Object.entries(scores).map(([criterionId, marks]) => ({
+      criterionId,
+      marks,
+    }));
 
+    try {
+      await api.post("/api/evaluations", {
+        projectId: selectedProject._id,
+        scores: scoresArray,
+        remarks,
+      });
+
+      setSuccess(`Evaluation score for team ${selectedProject.teamName} locked successfully.`);
+      setSelectedProject(null);
+      fetchJuryData();
+    } catch (err: any) {
+      setError(err.message || "Failed to submit project scores.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAddDomainSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    try {
+      await api.post("/api/evaluations/domains", {
+        name: newDomainName,
+        description: newDomainDesc,
+      });
+      setSuccess(`Domain '${newDomainName}' added successfully.`);
+      setNewDomainName("");
+      setNewDomainDesc("");
+      setShowDomainModal(false);
+      fetchDomains();
+    } catch (err: any) {
+      setError(err.message || "Failed to add new domain.");
+    }
+  };
+
+  const handleAddCriteriaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    try {
+      await api.post("/api/evaluations/criteria", {
+        domain: newCritDomain,
+        name: newCritName,
+        maxMarks: newCritMax,
+        description: newCritDesc,
+      });
+      setSuccess(`Evaluation criterion '${newCritName}' added successfully.`);
+      setNewCritName("");
+      setNewCritDesc("");
+      setNewCritMax(20);
+      setShowCritModal(false);
+    } catch (err: any) {
+      setError(err.message || "Failed to add new evaluation criteria.");
+    }
+  };
+
+  const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
+
+  if (loading && projects.length === 0) {
     return (
-        <div className="animate-in slide-in-from-bottom-4 fade-in duration-500 pb-12">
-            <header className="mb-8 p-1">
-                <h2 className="text-3xl font-display font-bold text-white tracking-tight flex items-center gap-3">
-                    Evaluate Teams
-                </h2>
-                <p className="text-slate-400 mt-2 text-sm max-w-xl">
-                    Enter evaluation marks and problem statements for teams across all rounds. Once submitted, marks cannot be altered.
-                </p>
-            </header>
-
-            {/* Filters and Search */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder="Search teams by ID or name..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-slate-500"
-                    />
-                </div>
-                <div className="relative min-w-[200px]">
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10" />
-                    <select
-                        value={selectedDomain}
-                        onChange={(e) => setSelectedDomain(e.target.value as Domain | 'All')}
-                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none text-slate-200"
-                    >
-                        <option value="All">All Domains</option>
-                        {domains.map((d) => (
-                            <option key={d} value={d}>{d}</option>
-                        ))}
-                    </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                        <ChevronDown className="h-4 w-4" />
-                    </div>
-                </div>
-            </div>
-
-            {/* Team List */}
-            <div className="space-y-3">
-                {filteredTeams.length === 0 ? (
-                    <div className="text-center py-12 bg-slate-900/40 rounded-xl border border-white/5 backdrop-blur-sm">
-                        <p className="text-slate-400">No teams found matching your criteria.</p>
-                    </div>
-                ) : (
-                    filteredTeams.map((team) => (
-                        <div
-                            key={team.id}
-                            className="group rounded-xl border border-white/5 bg-slate-900/40 backdrop-blur-md overflow-hidden transition-all hover:bg-slate-900/60 hover:border-white/10"
-                        >
-                            <button
-                                onClick={() => toggleExpand(team.id)}
-                                className="w-full px-6 py-4 flex items-center justify-between focus:outline-none"
-                            >
-                                <div className="flex items-center gap-4 text-left">
-                                    <div className="hidden sm:flex items-center justify-center w-12 h-12 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-bold font-display">
-                                        {team.id.split('-')[1]}
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-white flex items-center gap-2 text-lg">
-                                            {team.displayData.name}
-                                            {team.isRound1Locked && team.isRound2Locked && team.isRound3Locked && team.isProblemStatementLocked && (
-                                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1 ml-2">
-                                                    <CheckCircle className="h-3 w-3" /> Fully Evaluated
-                                                </span>
-                                            )}
-                                        </h3>
-                                        <p className="text-sm text-slate-400 mt-1">
-                                            {team.id} • {team.displayData.domain}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="text-slate-400 group-hover:text-indigo-400 transition-colors bg-white/5 p-2 rounded-full">
-                                    {expandedTeamId === team.id ? (
-                                        <ChevronUp className="h-5 w-5" />
-                                    ) : (
-                                        <ChevronDown className="h-5 w-5" />
-                                    )}
-                                </div>
-                            </button>
-
-                            {/* Expansion Details */}
-                            <div
-                                className={cn(
-                                    "grid transition-all duration-300 ease-in-out",
-                                    expandedTeamId === team.id ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                                )}
-                            >
-                                <div className="overflow-hidden">
-                                    <div className="p-6 pt-0 border-t border-white/5">
-
-                                        <div className="mb-6 bg-white/5 p-4 rounded-xl border border-white/5">
-                                            <div className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
-                                                <Users className="h-4 w-4 text-indigo-400" />
-                                                Team Members
-                                            </div>
-                                            <div className="flex flex-wrap gap-2 mt-2">
-                                                <span className={`text-xs text-indigo-300 bg-indigo-500/10 border-indigo-500/30 px-2.5 py-1 rounded-md border flex items-center gap-1.5`}>
-                                                    {team['Team Leader Name']}
-                                                    <span className="text-[10px] font-semibold tracking-wider uppercase text-indigo-400 opacity-80">(Leader)</span>
-                                                </span>
-                                                {team.displayData.members.map((member, idx) => {
-                                                    // Check if this member is the leader based on 'Team Leader Name' or default to first member (idx === 0)
-                                                    const isLeader = team['Team Leader Name'] ? member === team['Team Leader Name'] : idx === 0;
-                                                    return (
-                                                        <span key={idx} className={`text-xs ${isLeader ? 'text-indigo-300 bg-indigo-500/10 border-indigo-500/30' : 'text-slate-300 bg-slate-800 border-white/5'} px-2.5 py-1 rounded-md border flex items-center gap-1.5`}>
-                                                            {member}
-                                                            {isLeader && <span className="text-[10px] font-semibold tracking-wider uppercase text-indigo-400 opacity-80">(Leader)</span>}
-                                                        </span>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
-
-                                            {/* Left: Problem Statement */}
-                                            <div className="space-y-3">
-                                                {team.isProblemStatementLocked ? (
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium text-slate-300 ml-1">Problem Statement</label>
-                                                        <div className="w-full bg-slate-900/50 border border-white/5 rounded-xl p-4 text-sm text-slate-300 min-h-[160px] leading-relaxed whitespace-pre-wrap uppercase">
-                                                            {team.problemStatement || <span className="text-slate-500 italic lowercase flex">No problem statement provided.</span>}
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <div className="space-y-2">
-                                                            <label className="text-sm font-medium text-slate-300 ml-1">Problem Statement</label>
-                                                            <textarea
-                                                                placeholder="Describe the problem the team is solving..."
-                                                                value={team.problemStatement || ''}
-                                                                onChange={(e) => handleInputChange(team.id, 'problemStatement', e.target.value)}
-                                                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-slate-600 min-h-[160px] resize-none text-slate-200"
-                                                            />
-                                                        </div>
-                                                        <button
-                                                            onClick={() => lockEvaluation(team.id, 'isProblemStatementLocked')}
-                                                            className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 h-10 transition-all shadow-[0_0_15px_rgba(79,70,229,0.2)] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm"
-                                                        >
-                                                            <CheckCircle className="h-4 w-4" />
-                                                            Submit Statement
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-
-                                            {/* Right: Marks */}
-                                            <div className="space-y-6">
-                                                {/* Round 1 */}
-                                                <div className="bg-white/5 rounded-xl p-4 border border-white/5">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <h4 className="text-sm font-semibold text-indigo-400">Round 1: The Council Of the Seven Kingdoms (Max 100)</h4>
-                                                        {!team.isRound1Locked ? (
-                                                            <button
-                                                                onClick={() => lockEvaluation(team.id, 'isRound1Locked')}
-                                                                className="flex items-center gap-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-1.5 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-xs font-medium shadow-sm"
-                                                            >
-                                                                <CheckCircle className="h-3.5 w-3.5" /> Submit R1
-                                                            </button>
-                                                        ) : (
-                                                            <div className="flex items-center gap-1.5 rounded-lg bg-white/5 text-slate-400 border border-white/5 px-3 py-1.5 text-xs font-medium">
-                                                                <Lock className="h-3.5 w-3.5" /> Locked
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        {EVALUATION_CRITERIA[team.displayData.domain] && EVALUATION_CRITERIA[team.displayData.domain].r1.map((criterion: string, idx: number) => (
-                                                            <div key={`r1-${idx}`} className="space-y-1.5">
-                                                                <label className="text-xs font-medium text-slate-300 leading-tight block h-8">{criterion}</label>
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    max="25"
-                                                                    value={team[`r1_${idx + 1}` as keyof Team] as number || ''}
-                                                                    onChange={(e) => handleMarkChange(team.id, `r1_${idx + 1}` as keyof Team, e.target.value)}
-                                                                    disabled={team.isRound1Locked}
-                                                                    className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-center outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-600 text-sm"
-                                                                    placeholder="/ 25"
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* Round 2 */}
-                                                <div className="bg-white/5 rounded-xl p-4 border border-white/5">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <h4 className="text-sm font-semibold text-indigo-400">Round 2: Forging the Valyrian Code (Max 100)</h4>
-                                                        {!team.isRound2Locked ? (
-                                                            <button
-                                                                onClick={() => lockEvaluation(team.id, 'isRound2Locked')}
-                                                                className="flex items-center gap-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-1.5 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-xs font-medium shadow-sm"
-                                                            >
-                                                                <CheckCircle className="h-3.5 w-3.5" /> Submit R2
-                                                            </button>
-                                                        ) : (
-                                                            <div className="flex items-center gap-1.5 rounded-lg bg-white/5 text-slate-400 border border-white/5 px-3 py-1.5 text-xs font-medium">
-                                                                <Lock className="h-3.5 w-3.5" /> Locked
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        {EVALUATION_CRITERIA[team.displayData.domain] && EVALUATION_CRITERIA[team.displayData.domain].r2.map((criterion: string, idx: number) => (
-                                                            <div key={`r2-${idx}`} className="space-y-1.5">
-                                                                <label className="text-xs font-medium text-slate-300 leading-tight block h-8">{criterion}</label>
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    max="25"
-                                                                    value={team[`r2_${idx + 1}` as keyof Team] as number || ''}
-                                                                    onChange={(e) => handleMarkChange(team.id, `r2_${idx + 1}` as keyof Team, e.target.value)}
-                                                                    disabled={team.isRound2Locked}
-                                                                    className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-center outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-600 text-sm"
-                                                                    placeholder="/ 25"
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* Round 3 */}
-                                                <div className="bg-white/5 rounded-xl p-4 border border-white/5">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <h4 className="text-sm font-semibold text-indigo-400">Round 3: Battle for the Throne (Max 100)</h4>
-                                                        {!team.isRound3Locked ? (
-                                                            <button
-                                                                onClick={() => lockEvaluation(team.id, 'isRound3Locked')}
-                                                                className="flex items-center gap-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-1.5 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-xs font-medium shadow-sm"
-                                                            >
-                                                                <CheckCircle className="h-3.5 w-3.5" /> Submit R3
-                                                            </button>
-                                                        ) : (
-                                                            <div className="flex items-center gap-1.5 rounded-lg bg-white/5 text-slate-400 border border-white/5 px-3 py-1.5 text-xs font-medium">
-                                                                <Lock className="h-3.5 w-3.5" /> Locked
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        {EVALUATION_CRITERIA[team.displayData.domain] && EVALUATION_CRITERIA[team.displayData.domain].r3.map((criterion: string, idx: number) => (
-                                                            <div key={`r3-${idx}`} className="space-y-1.5">
-                                                                <label className="text-xs font-medium text-slate-300 leading-tight block h-8">{criterion}</label>
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    max="25"
-                                                                    value={team[`r3_${idx + 1}` as keyof Team] as number || ''}
-                                                                    onChange={(e) => handleMarkChange(team.id, `r3_${idx + 1}` as keyof Team, e.target.value)}
-                                                                    disabled={team.isRound3Locked}
-                                                                    className="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-center outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-600 text-sm"
-                                                                    placeholder="/ 25"
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-indigo-500/10 rounded-xl p-5 border border-indigo-500/20 flex items-center justify-between">
-                                                    <div>
-                                                        <span className="text-sm font-medium text-indigo-300 block">Average Total Score</span>
-                                                        <span className="text-xs text-slate-400 mt-1 block">Average of all three rounds</span>
-                                                    </div>
-                                                    <span className="text-3xl font-bold text-indigo-400 font-display flex items-baseline">
-                                                        {(() => {
-                                                            let r1Total = 0, r2Total = 0, r3Total = 0;
-                                                            for (let i = 1; i <= 4; i++) {
-                                                                r1Total += (team[`r1_${i}` as keyof Team] as number || 0);
-                                                                r2Total += (team[`r2_${i}` as keyof Team] as number || 0);
-                                                                r3Total += (team[`r3_${i}` as keyof Team] as number || 0);
-                                                            }
-                                                            const avg = Math.round((r1Total + r2Total + r3Total) / 3);
-                                                            return avg;
-                                                        })()}
-                                                        <span className="text-sm text-indigo-500/50 ml-1.5 font-medium">/ 100</span>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-        </div>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600"></div>
+      </div>
     );
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Title */}
+      <div className="border-b border-slate-200 pb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
+            <Sparkles className="w-4 h-4" />
+            <span>Rubric Gradebook</span>
+          </div>
+          <h2 className="text-2xl font-bold font-display text-slate-800">Jury Evaluations</h2>
+          {user?.target_domain && (
+            <p className="text-xs text-slate-500 mt-1">
+              Evaluating domain: <span className="font-semibold text-slate-700">{user.target_domain}</span>
+            </p>
+          )}
+        </div>
+
+        {/* Spot add options */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowDomainModal(true)}
+            className="bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-300 font-bold px-3 py-2 rounded-xl text-[11px] shadow-sm flex items-center gap-1 cursor-pointer transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Domain</span>
+          </button>
+          <button
+            onClick={() => setShowCritModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl text-[11px] shadow-sm flex items-center gap-1 cursor-pointer transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Rubric Criteria</span>
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-semibold">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-xl text-xs font-semibold">
+          {success}
+        </div>
+      )}
+
+      {/* Filter and Search Bar */}
+      <GlassCard className="p-4 border-slate-200/50 bg-white/70 shadow-sm">
+        <div className="relative w-full md:max-w-md">
+          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+            <Search className="w-4 h-4" />
+          </span>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search projects in your domain..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+          />
+        </div>
+      </GlassCard>
+
+      {/* Project evaluation grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {projects.map((proj) => {
+          const myEval = myEvaluations.find(
+            (e) => (typeof e.project === "object" ? e.project._id : e.project) === proj._id
+          );
+          const isEvaluated = !!myEval;
+          const isLocked = myEval?.isLocked || false;
+
+          return (
+            <GlassCard
+              key={proj._id}
+              className="p-5 border-slate-200/50 bg-white/70 shadow-sm flex flex-col justify-between gap-4"
+            >
+              <div className="flex flex-col gap-2.5">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-bold text-blue-600 font-mono tracking-wider">{proj.projectId}</span>
+                    <h4 className="font-bold text-slate-800 text-sm leading-snug mt-1">{proj.title}</h4>
+                  </div>
+                  
+                  <div className="px-2.5 py-1 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 font-bold text-[10px] uppercase">
+                    Stall: {proj.stallNumber || "TBD"}
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500 line-clamp-3 leading-relaxed mt-1" title={proj.abstract}>
+                  {proj.abstract}
+                </p>
+
+                <div className="flex flex-wrap gap-2 text-xs font-semibold mt-1">
+                  <span className="bg-slate-50 border border-slate-100 text-slate-500 px-2 py-0.5 rounded-md">
+                    Team: {proj.teamName}
+                  </span>
+                  <span className="bg-slate-50 border border-slate-100 text-slate-500 px-2 py-0.5 rounded-md">
+                    Guide: {proj.guideTeacher}
+                  </span>
+                </div>
+              </div>
+
+              {/* Status and Action bar */}
+              <div className="border-t border-slate-100 pt-3 flex items-center justify-between text-xs mt-1">
+                <div className="flex items-center gap-1.5 font-medium">
+                  {isEvaluated ? (
+                    <span className="text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      {isLocked && <Lock className="w-3 h-3" />}
+                      <span>Scores Locked ({myEval.totalMarks} pts)</span>
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-full">
+                      Awaiting Grading
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => handleOpenEvaluation(proj)}
+                  disabled={proj.status === "Registered" /* Can't evaluate unless checked in */}
+                  className={`font-bold px-3 py-2 rounded-xl text-[10px] shadow-sm cursor-pointer flex items-center gap-1 transition-all ${
+                    proj.status === "Registered"
+                      ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+                      : isLocked
+                      ? "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
+                  title={proj.status === "Registered" ? "Team has not checked in at the entry gates yet." : ""}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>{isLocked ? "View Scores" : isEvaluated ? "Modify Scores" : "Evaluate Team"}</span>
+                </button>
+              </div>
+            </GlassCard>
+          );
+        })}
+
+        {projects.length === 0 && (
+          <div className="col-span-2 p-12 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-2xl bg-white/70">
+            No projects registered under your assigned domain.
+          </div>
+        )}
+      </div>
+
+      {/* Rubric Evaluation Modal */}
+      {selectedProject && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <GlassCard className="w-full max-w-lg p-6 bg-white border-slate-200/50 shadow-2xl relative my-8 max-h-[85vh] overflow-y-auto">
+            <button
+              onClick={() => setSelectedProject(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:bg-slate-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {(() => {
+              const myEval = myEvaluations.find(
+                (e) => (typeof e.project === "object" ? e.project._id : e.project) === selectedProject._id
+              );
+              const isLocked = myEval?.isLocked || false;
+
+              return (
+                <>
+                  <div className="flex flex-col gap-1 border-b border-slate-100 pb-3 mb-4">
+                    <span className="text-[10px] font-bold text-blue-600 uppercase font-mono">{selectedProject.projectId}</span>
+                    <h3 className="font-extrabold text-slate-800 text-base leading-snug">{selectedProject.title}</h3>
+                    <span className="text-[10px] text-slate-400 font-medium">Team Name: {selectedProject.teamName}</span>
+                  </div>
+
+                  {isLocked && (
+                    <div className="mb-4 p-3 bg-amber-50 border border-amber-100 text-amber-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+                      <Lock className="w-4 h-4 flex-shrink-0" />
+                      <span>This evaluation score sheet is locked. Contact an administrator to request overrides.</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmitEvaluation} className="flex flex-col gap-4">
+                    {criteriaList.map((crit) => (
+                      <div key={crit._id} className="flex flex-col gap-1.5 bg-slate-50/50 border border-slate-100 p-3.5 rounded-xl">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-bold text-slate-800">{crit.name}</span>
+                          <span className="text-slate-400 font-bold">Max {crit.maxMarks} pts</span>
+                        </div>
+                        {crit.description && (
+                          <p className="text-[10px] text-slate-400 leading-normal">
+                            {crit.description}
+                          </p>
+                        )}
+                        <input
+                          type="number"
+                          min={0}
+                          max={crit.maxMarks}
+                          value={scores[crit._id] || 0}
+                          onChange={(e) => handleScoreChange(crit._id, e.target.value, crit.maxMarks)}
+                          disabled={isLocked}
+                          className="w-24 px-3 py-1.5 mt-1 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none"
+                          required
+                        />
+                      </div>
+                    ))}
+
+                    {criteriaList.length === 0 && (
+                      <div className="p-4 bg-slate-50 border border-slate-100 text-center rounded-xl text-xs text-slate-500 font-semibold">
+                        No rubrics criteria defined for domain '{selectedProject.domain}'. Click 'Add Rubric Criteria' at the top to add criteria.
+                      </div>
+                    )}
+
+                    {/* Remarks */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">Jury Review Comments</label>
+                      <textarea
+                        value={remarks}
+                        onChange={(e) => setRemarks(e.target.value)}
+                        disabled={isLocked}
+                        placeholder="Provide details of prototype performance..."
+                        rows={2}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white"
+                      />
+                    </div>
+
+                    {/* Total Calculator Summary */}
+                    <div className="mt-2 p-4 bg-blue-50 border border-blue-100 rounded-xl flex justify-between items-center">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Calculated Score</span>
+                        <span className="text-xs font-semibold text-slate-500">Exhibition Rubrics Aggregate</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-2xl font-extrabold text-blue-600 font-display">{totalScore}</span>
+                      </div>
+                    </div>
+
+                    {!isLocked && criteriaList.length > 0 && (
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs shadow-md mt-2 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Locking Score...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Submit and Lock Grade</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </form>
+                </>
+              );
+            })()}
+          </GlassCard>
+        </div>
+      )}
+
+      {/* Spot Add Domain Modal */}
+      {showDomainModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <GlassCard className="w-full max-w-md p-6 bg-white border-slate-200/50 shadow-2xl relative">
+            <button
+              onClick={() => setShowDomainModal(false)}
+              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="font-extrabold text-slate-800 text-base mb-4 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-blue-600" />
+              <span>Add New Project Domain</span>
+            </h3>
+
+            <form onSubmit={handleAddDomainSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Domain Name *</label>
+                <input
+                  type="text"
+                  value={newDomainName}
+                  onChange={(e) => setNewDomainName(e.target.value)}
+                  placeholder="e.g. Smart Cities"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Description</label>
+                <textarea
+                  value={newDomainDesc}
+                  onChange={(e) => setNewDomainDesc(e.target.value)}
+                  placeholder="Domain summary description..."
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-md mt-2 flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Add Domain</span>
+              </button>
+            </form>
+          </GlassCard>
+        </div>
+      )}
+
+      {/* Spot Add Criteria Modal */}
+      {showCritModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <GlassCard className="w-full max-w-md p-6 bg-white border-slate-200/50 shadow-2xl relative">
+            <button
+              onClick={() => setShowCritModal(false)}
+              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="font-extrabold text-slate-800 text-base mb-4 flex items-center gap-2">
+              <Award className="w-5 h-5 text-blue-600" />
+              <span>Add New Evaluation Criterion</span>
+            </h3>
+
+            <form onSubmit={handleAddCriteriaSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Target Domain *</label>
+                <select
+                  value={newCritDomain}
+                  onChange={(e) => setNewCritDomain(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                >
+                  {domains.map((d) => (
+                    <option key={d._id} value={d.name}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Criterion Name *</label>
+                <input
+                  type="text"
+                  value={newCritName}
+                  onChange={(e) => setNewCritName(e.target.value)}
+                  placeholder="e.g. Originality & Innovation"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Max Marks *</label>
+                <input
+                  type="number"
+                  value={newCritMax}
+                  onChange={(e) => setNewCritMax(parseInt(e.target.value) || 0)}
+                  min={1}
+                  max={100}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Description</label>
+                <textarea
+                  value={newCritDesc}
+                  onChange={(e) => setNewCritDesc(e.target.value)}
+                  placeholder="Explain rubric evaluation standard..."
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-md mt-2 flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Add Criterion</span>
+              </button>
+            </form>
+          </GlassCard>
+        </div>
+      )}
+    </div>
+  );
 }
