@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../utils/api";
 import GlassCard from "../components/GlassCard";
-import { School as SchoolIcon, Search, Phone, Sparkles, Trash2 } from "lucide-react";
+import { School as SchoolIcon, Search, Phone, Sparkles, Trash2, Plus, X } from "lucide-react";
 import type { School } from "../types";
 
 export default function Schools() {
@@ -10,6 +10,22 @@ export default function Schools() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+
+  // Add School form state
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [address, setAddress] = useState("");
+  const [district, setDistrict] = useState("");
+  const [state, setState] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [principalName, setPrincipalName] = useState("");
+  const [inChargeName, setInChargeName] = useState("");
+  const [coordinatorEmail, setCoordinatorEmail] = useState("");
+  const [coordinatorMobile, setCoordinatorMobile] = useState("");
+  const [teachersCount, setTeachersCount] = useState(0);
+  const [emergencyContact, setEmergencyContact] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchSchools = async () => {
     try {
@@ -28,6 +44,52 @@ export default function Schools() {
   useEffect(() => {
     fetchSchools();
   }, [search]);
+
+  const handleAddSchool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setSubmitting(true);
+
+    try {
+      await api.post("/api/schools", {
+        name,
+        code,
+        address,
+        district,
+        state,
+        pincode,
+        principalName,
+        inChargeName,
+        coordinatorEmail,
+        coordinatorMobile,
+        teachersCount,
+        emergencyContact,
+      });
+
+      setSuccess("School registered successfully!");
+      setShowAddForm(false);
+      // Reset form
+      setName("");
+      setCode("");
+      setAddress("");
+      setDistrict("");
+      setState("");
+      setPincode("");
+      setPrincipalName("");
+      setInChargeName("");
+      setCoordinatorEmail("");
+      setCoordinatorMobile("");
+      setTeachersCount(0);
+      setEmergencyContact("");
+      
+      fetchSchools();
+    } catch (err: any) {
+      setError(err.message || "Failed to register school.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this school profile? All associated students and projects will need to be re-associated.")) {
@@ -56,12 +118,30 @@ export default function Schools() {
   return (
     <div className="flex flex-col gap-6">
       {/* Title */}
-      <div className="border-b border-slate-200 pb-5 flex flex-col gap-1">
-        <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
-          <Sparkles className="w-4 h-4" />
-          <span>Institutes Ledger</span>
+      <div className="border-b border-slate-200 pb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
+            <Sparkles className="w-4 h-4" />
+            <span>Institutes Ledger</span>
+          </div>
+          <h2 className="text-2xl font-bold font-display text-slate-800">Manage Schools</h2>
         </div>
-        <h2 className="text-2xl font-bold font-display text-slate-800">Manage Schools</h2>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl shadow-md shadow-blue-500/10 transition-all duration-200 text-sm flex items-center justify-center gap-2 w-fit cursor-pointer"
+        >
+          {showAddForm ? (
+            <>
+              <X className="w-4 h-4" />
+              <span>Cancel</span>
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4" />
+              <span>Add School</span>
+            </>
+          )}
+        </button>
       </div>
 
       {error && (
@@ -74,6 +154,167 @@ export default function Schools() {
         <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-xl text-xs font-semibold">
           {success}
         </div>
+      )}
+
+      {/* Add School Form */}
+      {showAddForm && (
+        <GlassCard className="p-6 border-slate-200/50 bg-white/80 shadow-md">
+          <form onSubmit={handleAddSchool} className="flex flex-col gap-4">
+            <h3 className="font-bold text-slate-800 text-sm pb-2 border-b border-slate-100">Register New School</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">School Name</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. PEC School of Science"
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">School Code</label>
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="e.g. PEC-001"
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1 md:col-span-2">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Address</label>
+                <input
+                  type="text"
+                  required
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Full school address..."
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">District</label>
+                <input
+                  type="text"
+                  required
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  placeholder="District"
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">State</label>
+                <input
+                  type="text"
+                  required
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  placeholder="State"
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Pincode</label>
+                <input
+                  type="text"
+                  required
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value)}
+                  placeholder="Pincode"
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Principal Name</label>
+                <input
+                  type="text"
+                  required
+                  value={principalName}
+                  onChange={(e) => setPrincipalName(e.target.value)}
+                  placeholder="Principal's Name"
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">In-Charge Coordinator</label>
+                <input
+                  type="text"
+                  required
+                  value={inChargeName}
+                  onChange={(e) => setInChargeName(e.target.value)}
+                  placeholder="In-Charge teacher..."
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Coordinator Email</label>
+                <input
+                  type="email"
+                  required
+                  value={coordinatorEmail}
+                  onChange={(e) => setCoordinatorEmail(e.target.value)}
+                  placeholder="coordinator@school.com"
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Coordinator Mobile</label>
+                <input
+                  type="text"
+                  required
+                  value={coordinatorMobile}
+                  onChange={(e) => setCoordinatorMobile(e.target.value)}
+                  placeholder="Mobile number"
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Teachers Count</label>
+                <input
+                  type="number"
+                  value={teachersCount}
+                  onChange={(e) => setTeachersCount(Number(e.target.value))}
+                  placeholder="Number of attending teachers"
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase">Emergency Contact</label>
+                <input
+                  type="text"
+                  required
+                  value={emergencyContact}
+                  onChange={(e) => setEmergencyContact(e.target.value)}
+                  placeholder="Emergency phone number"
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow-md shadow-blue-500/10 transition-all duration-200 text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+            >
+              {submitting ? "Registering School..." : "Submit Registration"}
+            </button>
+          </form>
+        </GlassCard>
       )}
 
       {/* Filter and Search Bar */}
@@ -165,7 +406,7 @@ export default function Schools() {
 
         {schools.length === 0 && (
           <div className="col-span-2 p-12 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-2xl bg-white/70 animate-pulse">
-            No school coordinators have registered school profiles yet.
+            No schools registered yet. Click "Add School" to add one manually.
           </div>
         )}
       </div>

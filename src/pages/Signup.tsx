@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ShieldCheck, Mail, Lock, User, ArrowRight, Loader2, Home, Phone, MapPin, Building, KeyRound, Sparkles } from "lucide-react";
+import { ShieldCheck, Mail, Lock, User, ArrowRight, Loader2, Home, Phone, Building, Sparkles } from "lucide-react";
 import { api } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 import GlassCard from "../components/GlassCard";
@@ -24,14 +24,6 @@ export default function Signup() {
   const [emergencyContact, setEmergencyContact] = useState("");
   const [coordinatorMobile, setCoordinatorMobile] = useState("");
 
-  // Jury fields
-  const [targetDomain, setTargetDomain] = useState("");
-  const [domainsList, setDomainsList] = useState<string[]>([]);
-
-  // OTP phase
-  const [showOtpScreen, setShowOtpScreen] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -39,25 +31,7 @@ export default function Signup() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Fetch active domains for jury setup
-    const fetchDomains = async () => {
-      try {
-        const response = await api.get("/api/evaluations/domains");
-        if (Array.isArray(response)) {
-          setDomainsList(response.map((d: any) => d.name));
-          if (response.length > 0) {
-            setTargetDomain(response[0].name);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load domains:", err);
-      }
-    };
-    fetchDomains();
-  }, []);
-
-  const handleRequestOtp = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setInfo(null);
@@ -90,31 +64,9 @@ export default function Signup() {
           emergencyContact: emergencyContact.trim(),
           coordinatorMobile: coordinatorMobile.trim(),
         });
-      } else if (role === "jury") {
-        payload.target_domain = targetDomain;
       }
 
       const response = await api.post("/api/auth/signup", payload);
-      setInfo(response.message || "OTP has been sent to your email.");
-      setShowOtpScreen(true);
-    } catch (err: any) {
-      setError(err.message || "Failed to send OTP. Please check your inputs.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setInfo(null);
-    setLoading(true);
-
-    try {
-      const response = await api.post("/api/auth/verify-otp", {
-        email: email.trim(),
-        otp: otpCode.trim(),
-      });
 
       if (response && response.token && response.user) {
         login(response.token, response.user);
@@ -131,7 +83,7 @@ export default function Signup() {
         setError("Invalid response format from server.");
       }
     } catch (err: any) {
-      setError(err.message || "Invalid OTP. Please try again.");
+      setError(err.message || "Failed to register. Please check your inputs.");
     } finally {
       setLoading(false);
     }
@@ -167,349 +119,269 @@ export default function Signup() {
             </div>
           )}
 
-          {!showOtpScreen ? (
-            <form onSubmit={handleRequestOtp} className="flex flex-col gap-6">
-              {/* Role selector tabs */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Select Your Registration Role</label>
-                <div className="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-xl">
-                  {[
-                    { id: "school_coordinator", label: "School" },
-                    { id: "jury", label: "Jury Member" },
-                    { id: "volunteer", label: "Volunteer" },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setRole(tab.id)}
-                      className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        role === tab.id
-                          ? "bg-white text-blue-600 shadow-sm"
-                          : "text-slate-500 hover:text-slate-700"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+          <form onSubmit={handleSignup} className="flex flex-col gap-6">
+            {/* Role selector tabs */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Select Your Registration Role</label>
+              <div className="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-xl">
+                {[
+                  { id: "school_coordinator", label: "School" },
+                  { id: "jury", label: "Jury Member" },
+                  { id: "volunteer", label: "Volunteer" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setRole(tab.id)}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      role === tab.id
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Login Credentials Group */}
+            <div className="bg-white/40 p-5 rounded-2xl border border-slate-200/50 flex flex-col gap-4">
+              <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                <span>Login Credentials</span>
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Username</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                      <User className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="john_doe"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Email Address</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                      <Mail className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="john@gmail.com"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Password</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                      <Lock className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Confirm Password</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                      <Lock className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
+            </div>
 
-              {/* Login Credentials Group */}
+            {/* School Coordinator details */}
+            {role === "school_coordinator" && (
               <div className="bg-white/40 p-5 rounded-2xl border border-slate-200/50 flex flex-col gap-4">
                 <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-                  <span>Login Credentials</span>
+                  <Building className="w-3.5 h-3.5 text-blue-500" />
+                  <span>School Profile Details</span>
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Username</label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
-                        <User className="w-4 h-4" />
-                      </span>
-                      <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        placeholder="john_doe"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Email Address</label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
-                        <Mail className="w-4 h-4" />
-                      </span>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="john@gmail.com"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Password</label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
-                        <Lock className="w-4 h-4" />
-                      </span>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Confirm Password</label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
-                        <Lock className="w-4 h-4" />
-                      </span>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* School Coordinator details */}
-              {role === "school_coordinator" && (
-                <div className="bg-white/40 p-5 rounded-2xl border border-slate-200/50 flex flex-col gap-4">
-                  <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                    <Building className="w-3.5 h-3.5 text-blue-500" />
-                    <span>School Profile Details</span>
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">School Name</label>
-                      <input
-                        type="text"
-                        value={schoolName}
-                        onChange={(e) => setSchoolName(e.target.value)}
-                        placeholder="Greenwood High School"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">School Code (Optional)</label>
-                      <input
-                        type="text"
-                        value={schoolCode}
-                        onChange={(e) => setSchoolCode(e.target.value)}
-                        placeholder="GHS-101"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                      />
-                    </div>
-
-                    <div className="sm:col-span-2 flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">School Address</label>
-                      <input
-                        type="text"
-                        value={schoolAddress}
-                        onChange={(e) => setSchoolAddress(e.target.value)}
-                        placeholder="83, Sarjapur Main Road"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">District</label>
-                      <input
-                        type="text"
-                        value={schoolDistrict}
-                        onChange={(e) => setSchoolDistrict(e.target.value)}
-                        placeholder="Bangalore"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">State</label>
-                      <input
-                        type="text"
-                        value={schoolState}
-                        onChange={(e) => setSchoolState(e.target.value)}
-                        placeholder="Karnataka"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Pincode</label>
-                      <input
-                        type="text"
-                        value={schoolPincode}
-                        onChange={(e) => setSchoolPincode(e.target.value)}
-                        placeholder="560087"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Principal Name</label>
-                      <input
-                        type="text"
-                        value={principalName}
-                        onChange={(e) => setPrincipalName(e.target.value)}
-                        placeholder="Dr. Caroline Roy"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">In-Charge Coordinator Name</label>
-                      <input
-                        type="text"
-                        value={inChargeName}
-                        onChange={(e) => setInChargeName(e.target.value)}
-                        placeholder="Mrs. Susan Green"
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Coordinator Mobile Number</label>
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
-                          <Phone className="w-4 h-4" />
-                        </span>
-                        <input
-                          type="text"
-                          value={coordinatorMobile}
-                          onChange={(e) => setCoordinatorMobile(e.target.value)}
-                          placeholder="9876543210"
-                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Emergency Contact Number</label>
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
-                          <Phone className="w-4 h-4" />
-                        </span>
-                        <input
-                          type="text"
-                          value={emergencyContact}
-                          onChange={(e) => setEmergencyContact(e.target.value)}
-                          placeholder="9876543219"
-                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Jury specific domain filtering */}
-              {role === "jury" && (
-                <div className="bg-white/40 p-5 rounded-2xl border border-slate-200/50 flex flex-col gap-4">
-                  <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                    <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                    <span>Jury Evaluation Domain Selection</span>
-                  </h4>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Select Target Domain</label>
-                    <select
-                      value={targetDomain}
-                      onChange={(e) => setTargetDomain(e.target.value)}
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">School Name</label>
+                    <input
+                      type="text"
+                      value={schoolName}
+                      onChange={(e) => setSchoolName(e.target.value)}
+                      placeholder="Greenwood High School"
                       className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
                       required
-                    >
-                      {domainsList.map((dom) => (
-                        <option key={dom} value={dom}>
-                          {dom}
-                        </option>
-                      ))}
-                      {domainsList.length === 0 && <option value="">Loading domains...</option>}
-                    </select>
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">School Code (Optional)</label>
+                    <input
+                      type="text"
+                      value={schoolCode}
+                      onChange={(e) => setSchoolCode(e.target.value)}
+                      placeholder="SCH-001"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">School Address</label>
+                    <input
+                      type="text"
+                      value={schoolAddress}
+                      onChange={(e) => setSchoolAddress(e.target.value)}
+                      placeholder="123 Education Lane"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">District</label>
+                    <input
+                      type="text"
+                      value={schoolDistrict}
+                      onChange={(e) => setSchoolDistrict(e.target.value)}
+                      placeholder="Chennai"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">State</label>
+                    <input
+                      type="text"
+                      value={schoolState}
+                      onChange={(e) => setSchoolState(e.target.value)}
+                      placeholder="Tamil Nadu"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Pincode</label>
+                    <input
+                      type="text"
+                      value={schoolPincode}
+                      onChange={(e) => setSchoolPincode(e.target.value)}
+                      placeholder="600001"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Principal Name</label>
+                    <input
+                      type="text"
+                      value={principalName}
+                      onChange={(e) => setPrincipalName(e.target.value)}
+                      placeholder="Dr. John Smith"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Accompanying Teacher In-Charge</label>
+                    <input
+                      type="text"
+                      value={inChargeName}
+                      onChange={(e) => setInChargeName(e.target.value)}
+                      placeholder="Mrs. Susan Green"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Coordinator Mobile Number</label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                        <Phone className="w-4 h-4" />
+                      </span>
+                      <input
+                        type="text"
+                        value={coordinatorMobile}
+                        onChange={(e) => setCoordinatorMobile(e.target.value)}
+                        placeholder="9876543210"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Emergency Contact Number</label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                        <Phone className="w-4 h-4" />
+                      </span>
+                      <input
+                        type="text"
+                        value={emergencyContact}
+                        onChange={(e) => setEmergencyContact(e.target.value)}
+                        placeholder="9876543219"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md shadow-blue-500/15 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed mt-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Registering...</span>
+                </>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
               )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md shadow-blue-500/15 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed mt-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Sending OTP...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Request Verification OTP</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="flex flex-col gap-6">
-              <div className="text-center flex flex-col gap-2">
-                <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto border border-blue-100">
-                  <KeyRound className="w-6 h-6 animate-pulse" />
-                </div>
-                <h3 className="font-bold text-slate-800 text-base">Enter Verification OTP</h3>
-                <p className="text-xs text-slate-500">We have sent a 6-digit OTP code to <strong className="text-slate-700">{email}</strong>. Please enter it below to complete your registration.</p>
-              </div>
-
-              <div className="flex flex-col gap-1.5 max-w-xs mx-auto w-full">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide text-center">6-Digit OTP Code</label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                  placeholder="123456"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 text-center tracking-[0.5em] font-mono text-lg focus:outline-none focus:border-blue-500 shadow-sm"
-                  required
-                />
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md shadow-blue-500/15 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Verifying...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Verify & Complete Registration</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowOtpScreen(false)}
-                  className="w-full text-slate-500 hover:text-slate-700 text-xs font-semibold py-2 transition-all cursor-pointer text-center"
-                >
-                  Back to Registration Details
-                </button>
-              </div>
-            </form>
-          )}
+            </button>
+          </form>
         </GlassCard>
 
         <div className="text-center flex flex-col gap-2">

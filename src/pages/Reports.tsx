@@ -11,6 +11,8 @@ import {
   School as SchoolIcon,
   Loader2,
   Sparkles,
+  Printer,
+  X,
 } from "lucide-react";
 import type { Event } from "../types";
 import { useAuth } from "../context/AuthContext";
@@ -27,6 +29,11 @@ export default function Reports() {
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [downloading, setDownloading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // PDF Preview states
+  const [previewData, setPreviewData] = useState<any[] | null>(null);
+  const [previewTitle, setPreviewTitle] = useState("");
+  const [previewing, setPreviewing] = useState(false);
 
   // Fetch Events
   useEffect(() => {
@@ -79,6 +86,34 @@ export default function Reports() {
     }
   };
 
+  const handlePreviewPdf = async (reportType: string, title: string) => {
+    if (!selectedEventId) {
+      setError("Please select an exhibition event first.");
+      return;
+    }
+
+    setError(null);
+    setPreviewing(true);
+
+    try {
+      const endpoint = `/api/reports/${reportType}?eventId=${selectedEventId}&format=json`;
+      const data = await api.get(endpoint);
+      setPreviewData(data);
+      setPreviewTitle(title);
+    } catch (err: any) {
+      console.error("Failed to fetch report data:", err);
+      setError("Failed to generate print preview.");
+    } finally {
+      setPreviewing(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const activeEvent = events.find((e) => e._id === selectedEventId);
+
   const reportsList = [
     {
       id: "registrations",
@@ -97,26 +132,26 @@ export default function Reports() {
     {
       id: "evaluations",
       title: "Jury Score sheets",
-      desc: "Detailed rubric score cards for Innovation (25), Tech (20), Presentation (20), Practical (20), and Social (15).",
+      desc: "Detailed rubric score cards and aggregate evaluations of projects submitted by all jury panels.",
       icon: FileSpreadsheet,
       color: "bg-indigo-50 text-indigo-600 border-indigo-100",
     },
     {
       id: "winners",
       title: "Ranked Winner Lists",
-      desc: "Project teams sorted by aggregate jury evaluation score per domain and category to determine winners.",
+      desc: "Project teams sorted by aggregate jury evaluation score per category to determine winners.",
       icon: Award,
       color: "bg-yellow-50 text-yellow-600 border-yellow-100",
     },
     {
-      id: "school-summary",
+      id: "schools",
       title: "School Engagement Reports",
       desc: "Aggregate engagement summaries per school containing registration count, attendance count, and entry ratio.",
       icon: SchoolIcon,
       color: "bg-purple-50 text-purple-600 border-purple-100",
     },
     {
-      id: "audit-logs",
+      id: "audits",
       title: "System Audit Trails",
       desc: "Administrator operations trail logging core activities, updates, profile changes, and database modifications.",
       icon: History,
@@ -126,15 +161,39 @@ export default function Reports() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Print Specific CSS Styles */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #print-section, #print-section * {
+            visibility: visible;
+          }
+          #print-section {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+            background: white;
+            color: black;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       {/* Title */}
-      <div className="border-b border-slate-200 pb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="border-b border-slate-200 pb-5 flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
             <Sparkles className="w-4 h-4" />
             <span>Analytical Exports</span>
           </div>
           <h2 className="text-2xl font-bold font-display text-slate-800">Reports Center</h2>
-          <p className="text-xs text-slate-500">Export high-performance spreadsheets from the active expo database.</p>
+          <p className="text-xs text-slate-500">Export spreadsheets and print official PDF reports.</p>
         </div>
 
         {/* Dropdown Selector */}
@@ -155,13 +214,13 @@ export default function Reports() {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-semibold">
+        <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-semibold no-print">
           {error}
         </div>
       )}
 
       {/* Reports Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
         {reportsList.map((rep) => {
           const excelKey = `${rep.id}-excel`;
           const csvKey = `${rep.id}-csv`;
@@ -182,39 +241,48 @@ export default function Reports() {
               </div>
 
               {/* Actions */}
-              <div className="border-t border-slate-100 pt-4 flex items-center justify-end gap-2 text-xs">
+              <div className="border-t border-slate-100 pt-4 flex flex-wrap items-center justify-end gap-2 text-xs">
+                <button
+                  onClick={() => handlePreviewPdf(rep.id, rep.title)}
+                  disabled={previewing || downloading !== null}
+                  className="bg-blue-650 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-sm disabled:opacity-75"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>PDF Print</span>
+                </button>
+
                 <button
                   onClick={() => handleDownload(rep.id, "excel")}
-                  disabled={downloading !== null}
+                  disabled={downloading !== null || previewing}
                   className="bg-white border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-600 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {downloading === excelKey ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Exporting Excel...</span>
+                      <span>Exporting...</span>
                     </>
                   ) : (
                     <>
                       <Download className="w-3.5 h-3.5" />
-                      <span>Excel (.xlsx)</span>
+                      <span>Excel</span>
                     </>
                   )}
                 </button>
 
                 <button
                   onClick={() => handleDownload(rep.id, "csv")}
-                  disabled={downloading !== null}
-                  className="bg-slate-50 border border-slate-100 hover:bg-slate-100 text-slate-600 font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                  disabled={downloading !== null || previewing}
+                  className="bg-slate-55 border border-slate-100 hover:bg-slate-100 text-slate-600 font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {downloading === csvKey ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Exporting CSV...</span>
+                      <span>Exporting...</span>
                     </>
                   ) : (
                     <>
                       <Download className="w-3.5 h-3.5" />
-                      <span>CSV (.csv)</span>
+                      <span>CSV</span>
                     </>
                   )}
                 </button>
@@ -223,6 +291,89 @@ export default function Reports() {
           );
         })}
       </div>
+
+      {/* PDF Print Preview Modal */}
+      {previewData && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto no-print">
+          <GlassCard className="w-full max-w-4xl p-6 bg-white border-slate-200/50 shadow-2xl relative my-8 flex flex-col gap-4">
+            <button
+              onClick={() => setPreviewData(null)}
+              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
+                <Printer className="w-5 h-5 text-blue-600" />
+                <span>Institutional PDF Print Preview</span>
+              </h3>
+              <button
+                onClick={handlePrint}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Send to Printer / Save PDF</span>
+              </button>
+            </div>
+
+            {/* Printable Report Section */}
+            <div id="print-section" className="bg-white border border-slate-200 p-8 rounded-xl overflow-x-auto max-h-[60vh] overflow-y-auto">
+              {/* Institutional Header */}
+              <div className="text-center flex flex-col items-center border-b-2 border-slate-900 pb-6 mb-6">
+                <h1 className="text-xl font-bold tracking-wide text-slate-900">PRATHYUSHA ENGINEERING COLLEGE</h1>
+                <p className="text-[10px] text-slate-600 font-medium tracking-widest uppercase mt-0.5">Approved by AICTE, New Delhi & Affiliated to Anna University</p>
+                <div className="w-12 h-0.5 bg-blue-600 my-3" />
+                <h2 className="text-md font-bold text-slate-800">{previewTitle.toUpperCase()} REPORT</h2>
+                <p className="text-xs text-slate-500 font-semibold mt-1">Event: {activeEvent?.title || "Exhibition Event"}</p>
+                <p className="text-[10px] text-slate-400 font-semibold mt-1">Generated: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</p>
+              </div>
+
+              {/* Table Data */}
+              {previewData.length > 0 ? (
+                <table className="w-full text-left border-collapse border border-slate-300 text-xs">
+                  <thead>
+                    <tr className="bg-slate-50">
+                      {Object.keys(previewData[0]).map((header) => (
+                        <th key={header} className="border border-slate-300 px-3 py-2 font-bold text-slate-700">
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewData.map((row, idx) => (
+                      <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                        {Object.values(row).map((val: any, cellIdx) => (
+                          <td key={cellIdx} className="border border-slate-300 px-3 py-2 text-slate-600">
+                            {typeof val === "boolean" ? (val ? "Yes" : "No") : String(val)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="text-center text-slate-400 py-12">
+                  No records found for this report scope.
+                </div>
+              )}
+
+              {/* Signature Blocks */}
+              <div className="mt-16 grid grid-cols-2 gap-12 text-center pt-8 border-t border-dashed border-slate-200">
+                <div className="flex flex-col items-center">
+                  <div className="w-40 border-b border-slate-800 mt-6" />
+                  <span className="text-[10px] font-bold text-slate-700 uppercase mt-2">Event Coordinator</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="w-40 border-b border-slate-800 mt-6" />
+                  <span className="text-[10px] font-bold text-slate-700 uppercase mt-2">Principal Head</span>
+                </div>
+              </div>
+            </div>
+          </GlassCard>
+        </div>
+      )}
     </div>
   );
 }

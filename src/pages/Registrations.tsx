@@ -14,6 +14,8 @@ import {
   X,
   Printer,
   Sparkles,
+  Upload,
+  Download,
 } from "lucide-react";
 import type { Student, Event } from "../types";
 
@@ -30,7 +32,8 @@ export default function Registrations() {
   const [categoryFilter, setCategoryFilter] = useState("");
 
   // Modal Controls
-  const [activeModal, setActiveModal] = useState<"visitor" | "project" | "ticket" | null>(null);
+  const [activeModal, setActiveModal] = useState<"visitor" | "project" | "ticket" | "bulk" | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [ticketToken, setTicketToken] = useState<string | null>(null);
   const [signingTicket, setSigningTicket] = useState(false);
@@ -58,6 +61,12 @@ export default function Registrations() {
   const [members, setMembers] = useState<any[]>([
     { name: "", gender: "Male", dob: "", class: "", section: "", emergencyContact: "", phone: "" },
   ]);
+
+  // Bulk Upload state
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [schools, setSchools] = useState<any[]>([]);
+  const [selectedSchoolId, setSelectedSchoolId] = useState("");
+
 
 
 
@@ -114,7 +123,10 @@ export default function Registrations() {
   useEffect(() => {
     fetchActiveEvent();
     fetchDomains();
-  }, []);
+    if (user?.role === "super_admin") {
+      api.get("/api/schools").then(setSchools).catch(console.error);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (activeEvent) {
@@ -296,6 +308,54 @@ export default function Registrations() {
     }
   };
 
+  const handleDownloadTemplate = async () => {
+    try {
+      const blob = await api.get("/api/students/template");
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "Science_Expo_Bulk_Template.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (err: any) {
+      setError(err.message || "Failed to download template.");
+    }
+  };
+
+  const handleBulkUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile || !activeEvent) return;
+
+    setError(null);
+    setSuccess(null);
+    setSubmitting(true);
+
+    const formData = new FormData();
+    formData.append("file", uploadFile);
+    formData.append("eventId", activeEvent._id);
+    if (user?.role === "super_admin") {
+      if (!selectedSchoolId) {
+        setError("Please select a school first.");
+        setSubmitting(false);
+        return;
+      }
+      formData.append("schoolId", selectedSchoolId);
+    }
+
+    try {
+      const response = await api.post("/api/students/bulk-upload", formData);
+      setSuccess(response.message || "Bulk upload completed successfully.");
+      setActiveModal(null);
+      setUploadFile(null);
+      fetchStudents();
+    } catch (err: any) {
+      setError(err.message || "Failed to process bulk upload.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Coordinator school registration check
   const isCoordinatorUnconfigured = user?.role === "school_coordinator" && !user?.school;
 
@@ -358,6 +418,16 @@ export default function Registrations() {
             >
               <Plus className="w-4 h-4" />
               <span>Register Team</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveModal("bulk");
+                setUploadFile(null);
+              }}
+              className="bg-blue-655 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md shadow-blue-500/10 flex items-center gap-1.5 cursor-pointer transition-all"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Bulk Upload</span>
             </button>
 
           </div>
@@ -590,6 +660,90 @@ export default function Registrations() {
           )}
         </div>
       </GlassCard>
+
+      {/* Bulk Upload Modal */}
+      {activeModal === "bulk" && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <GlassCard className="w-full max-w-md p-6 bg-white border-slate-200/50 shadow-2xl relative">
+            <button
+              onClick={() => setActiveModal(null)}
+              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <h3 className="font-extrabold text-slate-800 text-base mb-2 flex items-center gap-2">
+              <Upload className="w-5 h-5 text-blue-655" />
+              <span>Bulk Student Import</span>
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">Upload an Excel sheet of students. New visitor students will be automatically marked as checked-in.</p>
+
+            <form onSubmit={handleBulkUploadSubmit} className="flex flex-col gap-4">
+              <button
+                type="button"
+                onClick={handleDownloadTemplate}
+                className="w-full border border-dashed border-blue-200 text-blue-600 hover:bg-blue-50 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1 cursor-pointer transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Excel Template</span>
+              </button>
+
+              {user?.role === "super_admin" && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Target School *</label>
+                  <select
+                    value={selectedSchoolId}
+                    onChange={(e) => setSelectedSchoolId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required
+                  >
+                    <option value="">Select a school...</option>
+                    {schools.map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {s.name} ({s.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Excel File *</label>
+                <input
+                  type="file"
+                  required
+                  accept=".xlsx, .xls"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files && files.length > 0) {
+                      setUploadFile(files[0]);
+                    }
+                  }}
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting || !uploadFile}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs shadow-md mt-2 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Processing Upload...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Upload & Import</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </GlassCard>
+        </div>
+      )}
 
       {/* Visitor Registration Modal */}
       {activeModal === "visitor" && (

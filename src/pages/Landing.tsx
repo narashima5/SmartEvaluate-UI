@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import logo from "../assets/logo/logo.png";
 import { ArrowRight, Award, ShieldAlert, Cpu, Leaf, BrainCircuit, HeartPulse, Sparkles } from "lucide-react";
 
 export default function Landing() {
@@ -30,10 +31,13 @@ export default function Landing() {
       {/* Header */}
       <header className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-600 text-white rounded-xl shadow-md shadow-blue-500/20">
-            <Award className="w-6 h-6 animate-pulse" />
+          <div className="p-1 bg-white rounded-xl border border-blue-100 shadow-md">
+            <img src={logo} alt="College Logo" className="h-10 w-auto object-contain" />
           </div>
-          <span className="text-xl font-bold font-display tracking-tight text-slate-800">Smart Evaluate (Prayoga'26 Edition)</span>
+          <div className="flex flex-col">
+            <span className="text-sm sm:text-base font-bold font-display tracking-tight text-slate-800">Prathyusha Engineering College</span>
+            <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider leading-none">Smart Evaluate</span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Link
@@ -105,9 +109,9 @@ export default function Landing() {
       <section className="bg-slate-100/50 border-t border-slate-200 py-20 z-10">
         <div className="max-w-7xl mx-auto px-6 flex flex-col gap-12">
           <div className="text-center max-w-lg mx-auto flex flex-col gap-3">
-            <h3 className="text-2xl sm:text-3xl font-extrabold font-display text-slate-900">Exhibition Domains</h3>
+            <h3 className="text-2xl sm:text-3xl font-extrabold font-display text-slate-900">Evaluation Criteria</h3>
             <p className="text-sm text-slate-500 leading-relaxed">
-              Jury evaluations will be conducted across these specialized categories.
+              Projects are evaluated dynamically based on custom criteria set by the administration.
             </p>
           </div>
 

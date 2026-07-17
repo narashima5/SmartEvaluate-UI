@@ -1,4 +1,5 @@
-import { GraduationCap, Menu, Bell } from "lucide-react";
+import { Menu, Bell } from "lucide-react";
+import logo from "../assets/logo/logo.png";
 import { useAuth } from "../context/AuthContext";
 
 interface HeaderProps {
@@ -30,14 +31,14 @@ export default function Header({ onMenuClick, announcement }: HeaderProps) {
               <Menu className="h-6 w-6" />
             </button>
             <div className="flex items-center gap-3 cursor-default group">
-              <div className="flex p-2 bg-blue-50 rounded-xl border border-blue-100 transition-all duration-300 group-hover:bg-blue-100 group-hover:scale-105 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-                <GraduationCap className="h-6 w-6 text-blue-600" />
+              <div className="flex p-1 bg-white rounded-xl border border-blue-100 transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                <img src={logo} alt="College Logo" className="h-10 w-auto object-contain" />
               </div>
               <div className="flex flex-col">
-                <h1 className="text-lg sm:text-xl font-bold font-display tracking-tight text-slate-800 leading-tight">
-                  Smart Evaluate
+                <h1 className="text-sm sm:text-base font-bold font-display tracking-tight text-slate-800 leading-tight">
+                  Prathyusha Engineering College
                 </h1>
-                <span className="text-[10px] font-semibold text-blue-500 tracking-wider uppercase leading-none">Science Expo Hub</span>
+                <span className="text-[11px] font-semibold text-blue-600 tracking-wider uppercase leading-none">Smart Evaluate - Science Expo Hub</span>
               </div>
             </div>
           </div>

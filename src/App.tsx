@@ -15,6 +15,7 @@ import Attendance from "./pages/Attendance";
 import Evaluate from "./pages/Evaluate";
 import Reports from "./pages/Reports";
 import Audits from "./pages/Audits";
+import Criteria from "./pages/Criteria";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ShieldAlert, LogOut } from "lucide-react";
@@ -104,6 +105,7 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
               <Route path="events" element={<Events />} />
               <Route path="schools" element={<Schools />} />
+              <Route path="criteria" element={<Criteria />} />
               <Route path="audits" element={<Audits />} />
             </Route>
 
