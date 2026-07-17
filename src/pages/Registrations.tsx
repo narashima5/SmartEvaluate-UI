@@ -51,11 +51,10 @@ export default function Registrations() {
   // Project Presenter Form State
   const [pTitle, setPTitle] = useState("");
   const [pAbstract, setPAbstract] = useState("");
-  const [pDomain, setPDomain] = useState("");
   const [pTeamName, setPTeamName] = useState("");
   const [pGuide, setPGuide] = useState("");
-  const [pEquipment, setPEquipment] = useState("");
   const [pDesc, setPDesc] = useState("");
+  const [pSchoolId, setPSchoolId] = useState("");
 
   // Members list (dynamic rows)
   const [members, setMembers] = useState<any[]>([
@@ -70,9 +69,6 @@ export default function Registrations() {
 
 
 
-  // Dynamic domains
-  const [domainsList, setDomainsList] = useState<string[]>([]);
-
   const fetchActiveEvent = async () => {
     try {
       const data = await api.get("/api/events/active");
@@ -81,21 +77,6 @@ export default function Registrations() {
       }
     } catch (err) {
       console.log("No active event loaded.");
-    }
-  };
-
-  const fetchDomains = async () => {
-    try {
-      const response = await api.get("/api/evaluations/domains");
-      if (Array.isArray(response)) {
-        const names = response.map((d: any) => d.name);
-        setDomainsList(names);
-        if (names.length > 0) {
-          setPDomain(names[0]);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to load domains:", err);
     }
   };
 
@@ -122,8 +103,7 @@ export default function Registrations() {
 
   useEffect(() => {
     fetchActiveEvent();
-    fetchDomains();
-    if (user?.role === "super_admin") {
+    if (user?.role === "super_admin" || user?.role === "school_coordinator") {
       api.get("/api/schools").then(setSchools).catch(console.error);
     }
   }, [user]);
@@ -227,16 +207,22 @@ export default function Registrations() {
       }
     }
 
+    if (!pSchoolId) {
+      setError("Please select a school.");
+      return;
+    }
+
     try {
       await api.post("/api/students/register-project", {
         projectTitle: pTitle,
         projectAbstract: pAbstract,
-        projectDomain: pDomain,
+        projectDomain: "",
         teamName: pTeamName,
         guideTeacher: pGuide,
-        requiredEquipment: pEquipment,
+        requiredEquipment: "",
         projectDescription: pDesc,
         eventId: activeEvent._id,
+        schoolId: pSchoolId,
         members: members.map((m) => ({
           ...m,
           dob: new Date(m.dob),
@@ -256,15 +242,10 @@ export default function Registrations() {
   const resetProjectForm = () => {
     setPTitle("");
     setPAbstract("");
-    if (domainsList.length > 0) {
-      setPDomain(domainsList[0]);
-    } else {
-      setPDomain("");
-    }
     setPTeamName("");
     setPGuide("");
-    setPEquipment("");
     setPDesc("");
+    setPSchoolId("");
     setMembers([{ name: "", gender: "Male", dob: "", class: "", section: "", emergencyContact: "", phone: "" }]);
   };
 
@@ -904,15 +885,17 @@ export default function Registrations() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Project Domain *</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">School *</label>
                   <select
-                    value={pDomain}
-                    onChange={(e) => setPDomain(e.target.value)}
+                    value={pSchoolId}
+                    onChange={(e) => setPSchoolId(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required
                   >
-                    {domainsList.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
+                    <option value="">Select a school...</option>
+                    {schools.map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {s.name} ({s.code})
                       </option>
                     ))}
                   </select>
@@ -943,28 +926,16 @@ export default function Registrations() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Guide Teacher *</label>
-                  <input
-                    type="text"
-                    value={pGuide}
-                    onChange={(e) => setPGuide(e.target.value)}
-                    placeholder="Mr. Alan Parker"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Required Stall Equipment</label>
-                  <input
-                    type="text"
-                    value={pEquipment}
-                    onChange={(e) => setPEquipment(e.target.value)}
-                    placeholder="230V Plug, Water hose"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
-                  />
-                </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Guide Teacher *</label>
+                <input
+                  type="text"
+                  value={pGuide}
+                  onChange={(e) => setPGuide(e.target.value)}
+                  placeholder="Mr. Alan Parker"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                  required
+                />
               </div>
 
               {/* Members section */}
