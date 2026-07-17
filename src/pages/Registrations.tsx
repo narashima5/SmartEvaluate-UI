@@ -47,6 +47,7 @@ export default function Registrations() {
   const [vTeacher, setVTeacher] = useState("");
   const [vContact, setVContact] = useState("");
   const [vPhone, setVPhone] = useState("");
+  const [vSchoolId, setVSchoolId] = useState("");
 
   // Project Presenter Form State
   const [pTitle, setPTitle] = useState("");
@@ -151,6 +152,11 @@ export default function Registrations() {
       return;
     }
 
+    if (!vSchoolId) {
+      setError("Please select a school.");
+      return;
+    }
+
     try {
       await api.post("/api/students/register-visitor", {
         name: vName,
@@ -162,6 +168,7 @@ export default function Registrations() {
         emergencyContact: vContact,
         phone: vPhone.trim(),
         eventId: activeEvent._id,
+        schoolId: vSchoolId,
       });
 
       setSuccess("Visitor student registered successfully.");
@@ -182,6 +189,7 @@ export default function Registrations() {
     setVTeacher("");
     setVContact("");
     setVPhone("");
+    setVSchoolId("");
   };
 
   // Submit Project Presenters
@@ -753,6 +761,23 @@ export default function Registrations() {
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
                   required
                 />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">School *</label>
+                <select
+                  value={vSchoolId}
+                  onChange={(e) => setVSchoolId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                  required
+                >
+                  <option value="">Select a school...</option>
+                  {schools.map((s) => (
+                    <option key={s._id} value={s._id}>
+                      {s.name} ({s.code})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

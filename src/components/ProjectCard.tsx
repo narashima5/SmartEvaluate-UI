@@ -1,22 +1,25 @@
-import { Award } from "lucide-react";
+import { Award, Eye } from "lucide-react";
 import type { Project } from "../types";
 import GlassCard from "./GlassCard";
 
 interface ProjectCardProps {
   proj: Project;
   isAdminOrEventCoordinator: boolean;
-  onStatusChange: (projectId: string, newStatus: string) => void;
   onOpenStallModal: (project: Project) => void;
+  onViewDetails: (project: Project) => void;
 }
 
 export default function ProjectCard({
   proj,
   isAdminOrEventCoordinator,
-  onStatusChange,
   onOpenStallModal,
+  onViewDetails,
 }: ProjectCardProps) {
   return (
-    <GlassCard className="p-5 border-slate-200/50 bg-white/70 shadow-sm flex flex-col justify-between gap-4 relative overflow-hidden">
+    <GlassCard 
+      onClick={() => onViewDetails(proj)}
+      className="p-5 border-slate-200/50 bg-white/70 shadow-sm flex flex-col justify-between gap-4 relative overflow-hidden cursor-pointer hover:bg-slate-50 transition-all hover:scale-[1.01] duration-200"
+    >
       {/* Status ribbon border */}
       <div
         className={`absolute top-0 left-0 right-0 h-1 ${
@@ -50,9 +53,11 @@ export default function ProjectCard({
           </div>
         </div>
 
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md w-fit">
-          {proj.domain}
-        </span>
+        {proj.domain && (
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md w-fit">
+            {proj.domain}
+          </span>
+        )}
 
         <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mt-1" title={proj.abstract}>
           {proj.abstract}
@@ -85,32 +90,19 @@ export default function ProjectCard({
       <div className="border-t border-slate-100 pt-3 flex items-center justify-between gap-3 text-xs mt-1">
         <div className="flex items-center gap-1.5">
           <span className="text-[9px] font-bold text-slate-400 uppercase">Status:</span>
-          {isAdminOrEventCoordinator ? (
-            <select
-              value={proj.status}
-              onChange={(e) => onStatusChange(proj._id, e.target.value)}
-              className="bg-white border border-slate-200 text-slate-700 font-semibold px-2 py-1 rounded-lg text-xs focus:outline-none focus:border-blue-500 shadow-sm"
-            >
-              <option value="Registered">Registered</option>
-              <option value="Checked In">Checked In</option>
-              <option value="Evaluated">Evaluated</option>
-              <option value="Winner">Winner</option>
-            </select>
-          ) : (
-            <span
-              className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                proj.status === "Winner"
-                  ? "bg-yellow-50 text-yellow-700 border-yellow-100"
-                  : proj.status === "Evaluated"
-                  ? "bg-blue-50 text-blue-600 border-blue-100"
-                  : proj.status === "Checked In"
-                  ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                  : "bg-slate-100 text-slate-400 border-slate-200"
-              }`}
-            >
-              {proj.status}
-            </span>
-          )}
+          <span
+            className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+              proj.status === "Winner"
+                ? "bg-yellow-50 text-yellow-700 border-yellow-100"
+                : proj.status === "Evaluated"
+                ? "bg-blue-50 text-blue-600 border-blue-100"
+                : proj.status === "Checked In"
+                ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                : "bg-slate-100 text-slate-400 border-slate-200"
+            }`}
+          >
+            {proj.status}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -123,12 +115,26 @@ export default function ProjectCard({
 
           {isAdminOrEventCoordinator && (
             <button
-              onClick={() => onOpenStallModal(proj)}
-              className="bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-300 font-bold px-2.5 py-1.5 rounded-lg text-[10px] shadow-sm cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenStallModal(proj);
+              }}
+              className="bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-300 font-bold px-2.5 py-1.5 rounded-lg text-[10px] shadow-sm cursor-pointer transition-colors"
             >
               Set Stall
             </button>
           )}
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails(proj);
+            }}
+            className="bg-blue-50 border border-blue-100 text-blue-600 hover:bg-blue-100 hover:text-blue-700 font-bold px-2.5 py-1.5 rounded-lg text-[10px] shadow-sm cursor-pointer flex items-center gap-1 transition-colors"
+          >
+            <Eye className="w-3 h-3" />
+            <span>Details</span>
+          </button>
         </div>
       </div>
     </GlassCard>

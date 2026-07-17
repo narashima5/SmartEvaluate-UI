@@ -39,6 +39,7 @@ export default function Projects() {
   // Stall Assignment Modal state
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [stallNumber, setStallNumber] = useState("");
+  const [detailProject, setDetailProject] = useState<Project | null>(null);
 
   // 1. Fetch Active Event Query
   const { data: activeEvent = null, isLoading: isActiveEventLoading } = useQuery<Event | null>({
@@ -103,18 +104,6 @@ export default function Projects() {
     },
   });
 
-  // 5. Change Status Mutation
-  const changeStatusMutation = useMutation({
-    mutationFn: ({ projectId, status }: { projectId: string; status: string }) =>
-      api.put(`/api/projects/${projectId}/status`, { status }),
-    onSuccess: () => {
-      setSuccess("Project status updated successfully.");
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
-    },
-    onError: (err: any) => {
-      setError(err.message || "Failed to update status.");
-    },
-  });
 
   const handleOpenStallModal = (project: Project) => {
     setSelectedProject(project);
@@ -146,11 +135,6 @@ export default function Projects() {
     autoAllocateMutation.mutate(activeEvent._id);
   };
 
-  const handleStatusChange = (projectId: string, newStatus: string) => {
-    setError(null);
-    setSuccess(null);
-    changeStatusMutation.mutate({ projectId, status: newStatus });
-  };
 
   const isAdminOrEventCoordinator = user?.role === "super_admin" || user?.role === "event_coordinator";
   const loading = isActiveEventLoading || (isProjectsLoading && !!activeEvent?._id);
@@ -282,8 +266,8 @@ export default function Projects() {
             key={proj._id}
             proj={proj}
             isAdminOrEventCoordinator={isAdminOrEventCoordinator}
-            onStatusChange={handleStatusChange}
             onOpenStallModal={handleOpenStallModal}
+            onViewDetails={setDetailProject}
           />
         ))}
 
@@ -341,6 +325,109 @@ export default function Projects() {
                 )}
               </button>
             </form>
+          </GlassCard>
+        </div>
+      )}
+
+      {/* Project Details Modal */}
+      {detailProject && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <GlassCard className="w-full max-w-xl p-6 bg-white border-slate-200/50 shadow-2xl relative my-8 max-h-[85vh] overflow-y-auto">
+            <button
+              onClick={() => setDetailProject(null)}
+              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <h3 className="font-extrabold text-slate-800 text-base mb-4 border-b border-slate-100 pb-3 flex items-center gap-2">
+              <span className="text-[10px] font-bold text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded border border-blue-100">{detailProject.projectId}</span>
+              <span>Project & Team Details</span>
+            </h3>
+
+            <div className="flex flex-col gap-5 text-xs">
+              {/* Project Info */}
+              <div className="flex flex-col gap-3 bg-slate-50/50 border border-slate-100 p-4 rounded-2xl">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Project Title</span>
+                  <span className="font-bold text-slate-800 text-sm leading-snug">{detailProject.title}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Status</span>
+                    <span className="font-semibold text-slate-700">{detailProject.status}</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Stall Number</span>
+                    <span className="font-semibold text-slate-700">{detailProject.stallNumber || "Not Allocated"}</span>
+                  </div>
+                </div>
+
+                {detailProject.domain && (
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Domain</span>
+                    <span className="font-semibold text-slate-700">{detailProject.domain}</span>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Abstract</span>
+                  <p className="text-slate-600 leading-relaxed font-medium whitespace-pre-wrap">{detailProject.abstract}</p>
+                </div>
+
+                {detailProject.description && (
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Description</span>
+                    <p className="text-slate-600 leading-relaxed font-medium whitespace-pre-wrap">{detailProject.description}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Team Info */}
+              <div className="flex flex-col gap-3 bg-slate-50/50 border border-slate-100 p-4 rounded-2xl">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Team Name</span>
+                    <span className="font-bold text-slate-800">{detailProject.teamName}</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Guide Teacher</span>
+                    <span className="font-bold text-slate-800">{detailProject.guideTeacher}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Team Members List */}
+              <div className="flex flex-col gap-2.5">
+                <h4 className="font-extrabold text-slate-800 uppercase text-[10px] tracking-wider">Team Members Details</h4>
+                <div className="flex flex-col gap-3">
+                  {detailProject.members && (detailProject.members as any[]).map((m, idx) => (
+                    <div key={m._id || idx} className="border border-slate-200/60 rounded-xl p-3.5 bg-white shadow-sm flex flex-col gap-2">
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                        <span className="font-bold text-slate-800">{m.name}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded">{m.gender}</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-600">
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">Class/Sec</span>
+                          <span>{m.class} - {m.section}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">DOB</span>
+                          <span>{m.dob ? new Date(m.dob).toLocaleDateString() : "-"}</span>
+                        </div>
+                        <div className="flex flex-col col-span-2">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">Contact Details</span>
+                          <span>Ph: {m.phone || "-"}</span>
+                          <span>Alt: {m.emergencyContact || "-"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </GlassCard>
         </div>
       )}

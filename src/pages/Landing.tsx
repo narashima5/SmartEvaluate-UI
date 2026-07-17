@@ -1,25 +1,12 @@
 import { Link } from "react-router-dom";
 import logo from "../assets/logo/logo.png";
-import { ArrowRight, Award, ShieldAlert, Cpu, Leaf, BrainCircuit, HeartPulse, Sparkles } from "lucide-react";
+import { ArrowRight, Cpu, BrainCircuit, Sparkles } from "lucide-react";
 
 export default function Landing() {
-  const domainIcons: Record<string, any> = {
-    "AI / Generative AI": BrainCircuit,
-    "IoT & Smart Cities": Cpu,
-    "Climate & Environmental Intelligence": Leaf,
-    Cybersecurity: ShieldAlert,
-    "Healthcare Technology": HeartPulse,
-    "Open Innovation": Sparkles,
-    "Disaster Prediction & Response": Award,
-  };
-
-  const domains = [
-    { name: "AI / Generative AI", desc: "Building next-gen intelligent agents, deep learning, and transformer architectures." },
-    { name: "IoT & Smart Cities", desc: "Sensors, smart automation, smart grids, and connected system designs." },
-    { name: "Climate & Environmental Intelligence", desc: "Green tech, pollution tracking, and climate prediction models." },
-    { name: "Cybersecurity", desc: "Network defenses, cryptography, secure systems, and threat mitigation." },
-    { name: "Healthcare Technology", desc: "Biomedical sensors, diagnostics assistance, and health monitoring innovations." },
-    { name: "Open Innovation", desc: "Cross-disciplinary solutions solving unique real-world pain points." },
+  const criteria = [
+    { name: "Scientific Thought & Innovation", desc: "Clarity of the research question, original hypothesis, and depth of scientific inquiry.", icon: BrainCircuit },
+    { name: "Technical Skill & Execution", desc: "Engineering design quality, robust implementation, coding, and integration of technologies.", icon: Cpu },
+    { name: "Presentation & Communication", desc: "Clear explanations, visual poster layout, prototype demonstrations, and response to jury questions.", icon: Sparkles }
   ];
 
   return (
@@ -105,7 +92,7 @@ export default function Landing() {
         </div>
       </main>
 
-      {/* Domains Section */}
+      {/* Evaluation Criteria Section */}
       <section className="bg-slate-100/50 border-t border-slate-200 py-20 z-10">
         <div className="max-w-7xl mx-auto px-6 flex flex-col gap-12">
           <div className="text-center max-w-lg mx-auto flex flex-col gap-3">
@@ -116,20 +103,34 @@ export default function Landing() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {domains.map((dom, idx) => {
-              const Icon = domainIcons[dom.name] || Sparkles;
+            {criteria.map((crit, idx) => {
+              const Icon = crit.icon;
               return (
                 <div key={idx} className="bg-white border border-slate-200/60 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4">
                   <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
                     <Icon className="w-5 h-5" />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <h4 className="font-bold text-slate-800 text-sm">{dom.name}</h4>
-                    <p className="text-xs text-slate-500 leading-relaxed">{dom.desc}</p>
+                    <h4 className="font-bold text-slate-800 text-sm">{crit.name}</h4>
+                    <p className="text-xs text-slate-500 leading-relaxed">{crit.desc}</p>
                   </div>
                 </div>
               );
             })}
+          </div>
+
+          <div className="text-center mt-4 bg-blue-50/50 border border-blue-100 p-6 rounded-2xl max-w-xl mx-auto shadow-sm">
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              Want to see the complete evaluation criteria and scoring weights?{" "}
+              <Link to="/signup" className="text-blue-600 hover:text-blue-700 font-extrabold underline">
+                Register an account
+              </Link>{" "}
+              or{" "}
+              <Link to="/login" className="text-blue-600 hover:text-blue-700 font-extrabold underline">
+                Sign In
+              </Link>{" "}
+              to view full details.
+            </p>
           </div>
         </div>
       </section>
