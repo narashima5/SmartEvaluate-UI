@@ -4,6 +4,8 @@ import { api } from "../utils/api";
 import { useQuery } from "@tanstack/react-query";
 import { Calendar, Sparkles, AlertCircle } from "lucide-react";
 import type { Event } from "../types";
+import { useAuth } from "../context/AuthContext";
+import { Navigate } from "react-router-dom";
 
 // Import modular sub-components
 import SummaryStatsGrid from "../components/dashboard/SummaryStatsGrid";
@@ -24,6 +26,12 @@ interface LiveScan {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
+
+  if (user?.role === "school_coordinator") {
+    return <Navigate to="/school-profile" replace />;
+  }
+
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [analytics, setAnalytics] = useState<any>(null);
   const [liveScans, setLiveScans] = useState<LiveScan[]>([]);

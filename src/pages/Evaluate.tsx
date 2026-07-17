@@ -408,16 +408,44 @@ export default function Evaluate() {
                             {crit.description}
                           </p>
                         )}
-                        <input
-                          type="number"
-                          min={0}
-                          max={crit.maxMarks}
-                          value={scores[crit._id] || 0}
-                          onChange={(e) => handleScoreChange(crit._id, e.target.value, crit.maxMarks)}
-                          disabled={isLocked}
-                          className="w-24 px-3 py-1.5 mt-1 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none"
-                          required
-                        />
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentVal = Number(scores[crit._id] || 0);
+                              if (currentVal > 0) {
+                                handleScoreChange(crit._id, String(currentVal - 1), crit.maxMarks);
+                              }
+                            }}
+                            disabled={isLocked || Number(scores[crit._id] || 0) <= 0}
+                            className="w-9 h-9 flex items-center justify-center border border-slate-200 rounded-lg bg-white active:bg-slate-100 font-bold text-slate-600 text-base select-none disabled:opacity-50 cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            min={0}
+                            max={crit.maxMarks}
+                            value={scores[crit._id] || 0}
+                            onChange={(e) => handleScoreChange(crit._id, e.target.value, crit.maxMarks)}
+                            disabled={isLocked}
+                            className="w-16 h-9 text-center rounded-lg border border-slate-200 text-xs bg-white font-extrabold focus:outline-none"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentVal = Number(scores[crit._id] || 0);
+                              if (currentVal < crit.maxMarks) {
+                                handleScoreChange(crit._id, String(currentVal + 1), crit.maxMarks);
+                              }
+                            }}
+                            disabled={isLocked || Number(scores[crit._id] || 0) >= crit.maxMarks}
+                            className="w-9 h-9 flex items-center justify-center border border-slate-200 rounded-lg bg-white active:bg-slate-100 font-bold text-slate-600 text-base select-none disabled:opacity-50 cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                     ))}
 

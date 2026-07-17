@@ -84,7 +84,8 @@ export default function Audits() {
 
       {/* Audit Log Ledger Table */}
       <GlassCard className="border-slate-200/50 bg-white/70 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-slate-100 text-slate-400 font-bold bg-slate-50/50">
@@ -139,6 +140,49 @@ export default function Audits() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="block sm:hidden divide-y divide-slate-100">
+          {logs.map((log) => (
+            <div key={log._id} className="p-4 flex flex-col gap-2.5 hover:bg-slate-50/50 transition-colors">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100/50 px-2 py-0.5 rounded uppercase leading-none font-mono">
+                  {log.action}
+                </span>
+                <span className="text-slate-400 text-[10px] font-mono whitespace-nowrap">
+                  {new Date(log.timestamp).toLocaleString(undefined, {
+                    dateStyle: "short",
+                    timeStyle: "medium",
+                  })}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-700 font-sans leading-relaxed">
+                {log.description}
+              </p>
+
+              <div className="flex justify-between items-center border-t border-slate-50 pt-2 mt-1 text-xs">
+                <div>
+                  {log.user ? (
+                    <div className="flex items-center gap-1 font-sans">
+                      <span className="font-semibold text-slate-700 capitalize">{log.user.username}</span>
+                      <span className="text-[9px] text-slate-400 font-bold capitalize">({log.user.role.replace("_", " ")})</span>
+                    </div>
+                  ) : (
+                    <span className="text-slate-400 italic font-sans">System Guest</span>
+                  )}
+                </div>
+                <span className="text-slate-400 text-[10px] font-mono">{log.ipAddress || "127.0.0.1"}</span>
+              </div>
+            </div>
+          ))}
+
+          {logs.length === 0 && (
+            <div className="p-8 text-center text-slate-400 text-xs">
+              No system log events recorded matching search.
+            </div>
+          )}
         </div>
       </GlassCard>
     </div>

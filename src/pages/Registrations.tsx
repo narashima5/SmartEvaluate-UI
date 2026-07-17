@@ -419,7 +419,8 @@ export default function Registrations() {
 
       {/* Registrations List */}
       <GlassCard className="border-slate-200/50 bg-white/70 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-slate-100 text-slate-400 font-bold bg-slate-50/50">
@@ -488,7 +489,7 @@ export default function Registrations() {
                       {(!activeEvent || activeEvent.status === "active") && (
                         <button
                           onClick={() => handleDelete(st._id)}
-                          className="p-1.5 hover:bg-red-50 text-red-500 hover:text-red-600 rounded-lg border border-transparent hover:border-red-100 transition-all"
+                          className="p-1.5 hover:bg-red-50 text-red-500 hover:text-red-600 rounded-lg border border-transparent hover:border-red-100 transition-all cursor-pointer"
                           title="Remove registration"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -508,6 +509,85 @@ export default function Registrations() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="block sm:hidden divide-y divide-slate-100">
+          {students.map((st) => (
+            <div key={st._id} className="p-4 flex flex-col gap-3 hover:bg-slate-50/50 transition-colors">
+              <div className="flex justify-between items-start">
+                <div className="flex flex-col gap-1">
+                  <span className="font-bold text-blue-600 font-mono text-xs">{st.registrationNumber}</span>
+                  <span className="font-bold text-slate-800 text-sm">{st.name}</span>
+                  <span className="text-[10px] text-slate-400 capitalize">{st.gender}</span>
+                </div>
+                <div className="flex flex-col items-end gap-1.5">
+                  <span
+                    className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                      st.category === "Visitor"
+                        ? "bg-slate-50 text-slate-600 border-slate-200"
+                        : "bg-blue-50 text-blue-600 border-blue-100"
+                    }`}
+                  >
+                    {st.category}
+                  </span>
+                  {st.checkedIn ? (
+                    <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full">
+                      Checked In
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-bold bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded-full">
+                      Registered
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 text-xs border-t border-slate-50 pt-2.5 text-slate-500">
+                <div>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase block">Class & Sec</span>
+                  <span className="font-semibold text-slate-700">Class {st.class}-{st.section}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase block">Teacher Escort</span>
+                  <span className="font-semibold text-slate-700 truncate block">{st.teacherName}</span>
+                </div>
+                {user?.role === "super_admin" && (
+                  <div className="col-span-2">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block">School</span>
+                    <span className="font-semibold text-slate-700 truncate block" title={typeof st.school === "object" ? st.school.name : ""}>
+                      {typeof st.school === "object" ? st.school.name : st.school}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-slate-50 pt-2.5 mt-1">
+                <button
+                  onClick={() => handleOpenTicket(st)}
+                  className="flex items-center justify-center gap-1.5 flex-grow bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-300 font-bold px-3 py-2 rounded-xl text-xs cursor-pointer shadow-sm"
+                >
+                  <QrCode className="w-4 h-4" />
+                  <span>Ticket</span>
+                </button>
+                {(!activeEvent || activeEvent.status === "active") && (
+                  <button
+                    onClick={() => handleDelete(st._id)}
+                    className="flex items-center justify-center bg-white hover:bg-red-50 text-red-500 hover:text-red-600 rounded-xl border border-slate-200 hover:border-red-100 p-2.5 transition-all cursor-pointer"
+                    title="Remove registration"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {students.length === 0 && (
+            <div className="p-8 text-center text-slate-400 text-xs">
+              {activeEvent ? "No registrations match current filters." : "Configure an Active exhibition event to begin."}
+            </div>
+          )}
         </div>
       </GlassCard>
 

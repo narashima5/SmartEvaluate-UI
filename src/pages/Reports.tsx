@@ -13,8 +13,16 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { Event } from "../types";
+import { useAuth } from "../context/AuthContext";
+import { Navigate } from "react-router-dom";
 
 export default function Reports() {
+  const { user } = useAuth();
+
+  if (user?.role === "school_coordinator") {
+    return <Navigate to="/school-profile" replace />;
+  }
+
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [downloading, setDownloading] = useState<string | null>(null);

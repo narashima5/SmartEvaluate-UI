@@ -10,7 +10,8 @@ interface AttendanceTableProps {
 export default function AttendanceTable({ students, activeEvent }: AttendanceTableProps) {
   return (
     <GlassCard className="border-slate-200/50 bg-white/70 shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
+      {/* Desktop view for larger screens */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             <tr className="border-b border-slate-100 text-slate-400 font-bold bg-slate-50/50">
@@ -69,6 +70,59 @@ export default function AttendanceTable({ students, activeEvent }: AttendanceTab
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Card view for mobile screens */}
+      <div className="block sm:hidden divide-y divide-slate-100">
+        {students.map((st) => (
+          <div key={st._id} className="p-4 flex flex-col gap-2.5 hover:bg-slate-50/50 transition-colors">
+            <div className="flex justify-between items-start">
+              <div className="flex flex-col gap-0.5">
+                <span className="font-bold text-emerald-600 font-mono text-xs">{st.registrationNumber}</span>
+                <span className="font-bold text-slate-800 text-sm">{st.name}</span>
+              </div>
+              <span
+                className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                  st.category === "Visitor"
+                    ? "bg-slate-50 text-slate-600 border-slate-200"
+                    : "bg-blue-50 text-blue-600 border-blue-100"
+                }`}
+              >
+                {st.category}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 text-xs border-t border-slate-50 pt-2 text-slate-500">
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Class & Sec</span>
+                <span className="font-semibold text-slate-700">Class {st.class}-{st.section}</span>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Escort Teacher</span>
+                <span className="font-semibold text-slate-700 truncate block">{st.teacherName}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center border-t border-slate-50 pt-2.5 mt-1">
+              <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100/50 flex items-center gap-1 w-fit">
+                <MapPin className="w-3 h-3" />
+                <span>Gate 1</span>
+              </span>
+              <div className="flex items-center gap-1 text-slate-500 font-mono text-xs">
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <span>
+                  {st.updatedAt ? new Date(st.updatedAt).toLocaleTimeString(undefined, { timeStyle: "medium" }) : "N/A"}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {students.length === 0 && (
+          <div className="p-8 text-center text-slate-400 text-xs">
+            {activeEvent ? "No students have checked in yet." : "No active science exhibition event."}
+          </div>
+        )}
       </div>
     </GlassCard>
   );

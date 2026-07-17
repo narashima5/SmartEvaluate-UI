@@ -52,11 +52,16 @@ export default function SummaryStatsGrid({ summary }: SummaryStatsGridProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
       {cards.map((c, idx) => {
         const Icon = c.icon;
         return (
-          <GlassCard key={idx} className="p-5 flex flex-col justify-between gap-3 border-slate-200/50 bg-white/70 shadow-sm">
+          <GlassCard
+            key={idx}
+            className={`p-5 flex flex-col justify-between gap-3 border-slate-200/50 bg-white/70 shadow-sm ${
+              idx === 4 ? "col-span-2 lg:col-span-1" : ""
+            }`}
+          >
             <div className="flex justify-between items-start">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-snug">{c.label}</span>
               <div className={`p-2 rounded-lg border ${c.color}`}>

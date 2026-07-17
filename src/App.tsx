@@ -93,18 +93,41 @@ function App() {
         {/* Protected Dashboard Shell Routing */}
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="events" element={<Events />} />
-            <Route path="schools" element={<Schools />} />
-            <Route path="school-profile" element={<SchoolProfile />} />
-            <Route path="registrations" element={<Registrations />} />
-            <Route path="projects" element={<Projects />} />
-            <Route path="scanner" element={<Scanner />} />
-            <Route path="attendance" element={<Attendance />} />
-            <Route path="evaluate" element={<Evaluate />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="audits" element={<Audits />} />
-            <Route path="approvals" element={<Approvals />} />
+            {/* Admin & Coordinator Only */}
+            <Route element={<ProtectedRoute allowedRoles={["super_admin", "event_coordinator"]} />}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="approvals" element={<Approvals />} />
+            </Route>
+
+            {/* Super Admin Only */}
+            <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
+              <Route path="events" element={<Events />} />
+              <Route path="schools" element={<Schools />} />
+              <Route path="audits" element={<Audits />} />
+            </Route>
+
+            {/* School Coordinator Only */}
+            <Route element={<ProtectedRoute allowedRoles={["school_coordinator"]} />}>
+              <Route path="school-profile" element={<SchoolProfile />} />
+            </Route>
+
+            {/* Shared Registrations & Projects */}
+            <Route element={<ProtectedRoute allowedRoles={["school_coordinator", "super_admin", "event_coordinator"]} />}>
+              <Route path="registrations" element={<Registrations />} />
+              <Route path="projects" element={<Projects />} />
+            </Route>
+
+            {/* Volunteer, Admin & Coordinator Check-in */}
+            <Route element={<ProtectedRoute allowedRoles={["volunteer", "super_admin", "event_coordinator"]} />}>
+              <Route path="scanner" element={<Scanner />} />
+              <Route path="attendance" element={<Attendance />} />
+            </Route>
+
+            {/* Jury Only */}
+            <Route element={<ProtectedRoute allowedRoles={["jury"]} />}>
+              <Route path="evaluate" element={<Evaluate />} />
+            </Route>
           </Route>
         </Route>
 

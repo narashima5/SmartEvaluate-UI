@@ -1,7 +1,11 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-export default function ProtectedRoute() {
+interface ProtectedRouteProps {
+  allowedRoles?: string[];
+}
+
+export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const { token, user } = useAuth();
 
   // If there is no token, redirect to the login page immediately
@@ -11,6 +15,11 @@ export default function ProtectedRoute() {
 
   // If user is not approved, redirect to home page where the pending screen is rendered
   if (user && user.isApproved === false) {
+    return <Navigate to="/" replace />;
+  }
+
+  // If role is not allowed, redirect to home page
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
 
