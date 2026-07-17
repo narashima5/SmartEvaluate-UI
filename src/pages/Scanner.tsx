@@ -109,11 +109,21 @@ export default function Scanner() {
       }
     } catch (err: any) {
       console.error("Scan processing error:", err);
-      setScanResult({
-        status: "error",
-        message: err.message || "Failed to process ticket entry.",
-      });
-      playScanBeep(false);
+      const errData = err.data || {};
+      if (errData.status) {
+        setScanResult({
+          status: errData.status,
+          message: errData.message || err.message,
+          student: errData.student,
+        });
+        playScanBeep(errData.status === "success");
+      } else {
+        setScanResult({
+          status: "error",
+          message: err.message || "Failed to process ticket entry.",
+        });
+        playScanBeep(false);
+      }
     }
   };
 

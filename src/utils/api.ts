@@ -47,7 +47,9 @@ export const apiClient = async (endpoint: string, options: RequestOptions = {}) 
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Request failed with status ${response.status}`);
+    const err = new Error(errorData.message || errorData.error || `Request failed with status ${response.status}`);
+    (err as any).data = errorData;
+    throw err;
   }
 
   // Handle binary responses (e.g., file downloads for Excel template/reports)
