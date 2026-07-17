@@ -2,18 +2,18 @@ import { useState, useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { api } from "../utils/api";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, Sparkles, AlertCircle } from "lucide-react";
+import { Calendar, Sparkles, AlertCircle, X, Search, School, User as UserIcon, Phone, MapPin } from "lucide-react";
 import type { Event } from "../types";
 import { useAuth } from "../context/AuthContext";
 import { Navigate } from "react-router-dom";
 
 // Import modular sub-components
 import SummaryStatsGrid from "../components/dashboard/SummaryStatsGrid";
-import ProjectsByDomainChart from "../components/dashboard/ProjectsByDomainChart";
 import GenderRatioChart from "../components/dashboard/GenderRatioChart";
 import ClassAttendanceChart from "../components/dashboard/ClassAttendanceChart";
 import SchoolEngagementTable from "../components/dashboard/SchoolEngagementTable";
 import LiveScanTicker from "../components/dashboard/LiveScanTicker";
+import GlassCard from "../components/GlassCard";
 
 interface LiveScan {
   name: string;
@@ -23,6 +23,7 @@ interface LiveScan {
   projectCode?: string;
   stallNumber?: string;
   entryTime: string;
+  gate?: string;
 }
 
 export default function Dashboard() {
@@ -35,6 +36,8 @@ export default function Dashboard() {
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [analytics, setAnalytics] = useState<any>(null);
   const [liveScans, setLiveScans] = useState<LiveScan[]>([]);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
+  const [schoolStudentSearch, setSchoolStudentSearch] = useState<string>("");
   const socketRef = useRef<Socket | null>(null);
 
   // Fetch Events list using useQuery
@@ -66,10 +69,29 @@ export default function Dashboard() {
     enabled: !!selectedEventId,
   });
 
+  // Fetch details of selected school
+  const { data: selectedSchool, isLoading: isSchoolLoading } = useQuery<any>({
+    queryKey: ["school", selectedSchoolId],
+    queryFn: () => api.get(`/api/schools/${selectedSchoolId}`),
+    enabled: !!selectedSchoolId,
+  });
+
+  // Fetch student registrations of selected school for the current event
+  const { data: schoolStudents = [], isLoading: isSchoolStudentsLoading } = useQuery<any[]>({
+    queryKey: ["schoolStudents", selectedSchoolId, selectedEventId],
+    queryFn: () => api.get(`/api/students?schoolId=${selectedSchoolId}&eventId=${selectedEventId}`),
+    enabled: !!selectedSchoolId && !!selectedEventId,
+  });
+
   // Update local analytics copy to merge live WebSocket updates
   useEffect(() => {
     if (queryAnalytics) {
       setAnalytics(queryAnalytics);
+      if (queryAnalytics.recentScans) {
+        setLiveScans(queryAnalytics.recentScans);
+      } else {
+        setLiveScans([]);
+      }
     }
   }, [queryAnalytics]);
 
@@ -100,6 +122,7 @@ export default function Dashboard() {
         projectCode: data.student.projectCode,
         stallNumber: data.student.stallNumber,
         entryTime: data.student.entryTime,
+        gate: data.student.gate,
       };
       setLiveScans((prev) => [newScan, ...prev.slice(0, 19)]);
 
@@ -129,6 +152,16 @@ export default function Dashboard() {
   }, [selectedEventId]);
 
   const loading = isEventsLoading || (isAnalyticsLoading && !analytics);
+
+  const filteredSchoolStudents = schoolStudents.filter((student) => {
+    const searchVal = schoolStudentSearch.toLowerCase();
+    return (
+      student.name?.toLowerCase().includes(searchVal) ||
+      student.registrationNumber?.toLowerCase().includes(searchVal) ||
+      student.class?.toLowerCase().includes(searchVal) ||
+      student.category?.toLowerCase().includes(searchVal)
+    );
+  });
 
   if (loading) {
     return (
@@ -214,21 +247,206 @@ export default function Dashboard() {
           {/* Summary Cards */}
           <SummaryStatsGrid summary={summary} />
 
-          {/* Charts Layer 1 */}
+          {/* Charts Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <ProjectsByDomainChart data={analytics?.projectsByDomain} />
-            <GenderRatioChart data={analytics?.genderRatio} />
+            <div className="md:col-span-1">
+              <GenderRatioChart data={analytics?.genderRatio} />
+            </div>
+            <div className="md:col-span-2">
+              <ClassAttendanceChart data={analytics?.classParticipation} />
+            </div>
           </div>
 
-          {/* Charts Layer 2 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <ClassAttendanceChart data={analytics?.classParticipation} />
-            <SchoolEngagementTable data={analytics?.schoolParticipation} />
+          {/* School Engagement Table */}
+          <div className="grid grid-cols-1 gap-6">
+            <SchoolEngagementTable
+              data={analytics?.schoolParticipation}
+              onSchoolClick={(schoolId) => setSelectedSchoolId(schoolId)}
+            />
           </div>
 
           {/* Live Check-In Ticker */}
           <LiveScanTicker liveScans={liveScans} />
         </>
+      )}
+
+      {/* School Engagement Details Modal */}
+      {selectedSchoolId && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <GlassCard className="w-full max-w-4xl p-6 bg-white border-slate-200/50 shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto flex flex-col gap-6">
+            <button
+              onClick={() => {
+                setSelectedSchoolId(null);
+                setSchoolStudentSearch("");
+              }}
+              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {isSchoolLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
+              </div>
+            ) : selectedSchool ? (
+              <>
+                {/* Header */}
+                <div className="border-b border-slate-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-blue-50 rounded-xl border border-blue-100/50 text-blue-600">
+                      <School className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-800 tracking-tight leading-tight">
+                        {selectedSchool.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 font-mono mt-0.5">
+                        School Code: <span className="font-bold text-blue-600 uppercase">{selectedSchool.code}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grid info */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  {/* Contact Info */}
+                  <div className="bg-slate-50/60 border border-slate-100/80 p-4 rounded-2xl flex flex-col gap-2.5">
+                    <h4 className="font-bold text-slate-800 text-[10px] tracking-wider uppercase text-blue-600/90">Contact Details</h4>
+                    <div className="flex flex-col gap-1.5 text-slate-600">
+                      <p className="flex items-center gap-1.5">
+                        <UserIcon className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Principal: <strong>{selectedSchool.principalName}</strong></span>
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        <UserIcon className="w-3.5 h-3.5 text-slate-400" />
+                        <span>In-Charge: <strong>{selectedSchool.inChargeName}</strong></span>
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Coordinator: <strong>{selectedSchool.coordinatorMobile}</strong></span>
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Emergency: <strong>{selectedSchool.emergencyContact}</strong></span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Address */}
+                  <div className="bg-slate-50/60 border border-slate-100/80 p-4 rounded-2xl flex flex-col gap-2.5">
+                    <h4 className="font-bold text-slate-800 text-[10px] tracking-wider uppercase text-blue-600/90">Address & Location</h4>
+                    <div className="flex items-start gap-1.5 text-slate-600 leading-relaxed">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+                      <p>
+                        {selectedSchool.address}<br />
+                        {selectedSchool.district}, {selectedSchool.state} - {selectedSchool.pincode}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Faculty & Totals */}
+                  <div className="bg-slate-50/60 border border-slate-100/80 p-4 rounded-2xl flex flex-col gap-2.5">
+                    <h4 className="font-bold text-slate-800 text-[10px] tracking-wider uppercase text-blue-600/90">Faculty Details</h4>
+                    <div className="flex flex-col gap-1.5 text-slate-600 font-medium">
+                      <p>Teachers Registered: <strong>{selectedSchool.teachersCount || 0}</strong></p>
+                      {selectedSchool.teacherNames && selectedSchool.teacherNames.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {selectedSchool.teacherNames.map((name: string, i: number) => (
+                            <span key={i} className="bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-[10px]">
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Student Details List Section */}
+                <div className="flex flex-col gap-3 flex-1 overflow-hidden min-h-[300px]">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h4 className="font-extrabold text-slate-800 uppercase text-[10px] tracking-wider">
+                      Student Registrations ({schoolStudents.length})
+                    </h4>
+
+                    {/* Search bar inside modal */}
+                    <div className="relative w-full sm:w-64">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={schoolStudentSearch}
+                        onChange={(e) => setSchoolStudentSearch(e.target.value)}
+                        placeholder="Search student or class..."
+                        className="w-full pl-9 pr-4 py-1.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {isSchoolStudentsLoading ? (
+                    <div className="flex items-center justify-center py-12 flex-1">
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto border border-slate-100 rounded-xl flex-1 max-h-[350px]">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-400 font-bold sticky top-0">
+                            <th className="py-2.5 px-4">Reg No</th>
+                            <th className="py-2.5 px-4">Name</th>
+                            <th className="py-2.5 px-4">Class & Sec</th>
+                            <th className="py-2.5 px-4">Category</th>
+                            <th className="py-2.5 px-4">Gender</th>
+                            <th className="py-2.5 px-4 text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 text-slate-600 font-medium">
+                          {filteredSchoolStudents.map((stud) => (
+                            <tr key={stud._id} className="hover:bg-slate-50/30">
+                              <td className="py-2.5 px-4 font-mono text-[10px] text-slate-500">{stud.registrationNumber}</td>
+                              <td className="py-2.5 px-4 font-bold text-slate-700">{stud.name}</td>
+                              <td className="py-2.5 px-4">{stud.class} - {stud.section}</td>
+                              <td className="py-2.5 px-4">
+                                <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                                  stud.category === "Visitor"
+                                    ? "bg-amber-50 text-amber-600 border border-amber-100"
+                                    : "bg-blue-50 text-blue-600 border border-blue-100"
+                                }`}>
+                                  {stud.category}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-4 text-slate-500">{stud.gender}</td>
+                              <td className="py-2.5 px-4 text-right">
+                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                                  stud.checkedIn
+                                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                    : "bg-slate-50 text-slate-400 border border-slate-100"
+                                }`}>
+                                  <span className={`w-1 h-1 rounded-full ${stud.checkedIn ? "bg-emerald-500" : "bg-slate-400"}`} />
+                                  {stud.checkedIn ? "Checked In" : "Pending"}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                          {filteredSchoolStudents.length === 0 && (
+                            <tr>
+                              <td colSpan={6} className="py-8 text-center text-slate-400">
+                                No student records found.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="py-12 text-center text-slate-400 text-xs">
+                Failed to load school profile.
+              </div>
+            )}
+          </GlassCard>
+        </div>
       )}
     </div>
   );

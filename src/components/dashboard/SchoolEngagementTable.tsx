@@ -2,16 +2,18 @@ import GlassCard from "../GlassCard";
 
 interface SchoolEngagementTableProps {
   data?: {
+    schoolId?: string;
     schoolName: string;
     code: string;
     studentsCount: number;
     attendanceCount: number;
   }[];
+  onSchoolClick?: (schoolId: string) => void;
 }
 
-export default function SchoolEngagementTable({ data = [] }: SchoolEngagementTableProps) {
+export default function SchoolEngagementTable({ data = [], onSchoolClick }: SchoolEngagementTableProps) {
   return (
-    <GlassCard className="p-6 md:col-span-2 border-slate-200/50 bg-white/70 shadow-sm flex flex-col gap-4">
+    <GlassCard className="p-6 border-slate-200/50 bg-white/70 shadow-sm flex flex-col gap-4">
       <div className="flex justify-between items-center">
         <h3 className="font-bold text-slate-800 text-sm">School-wise Engagement Rates</h3>
         <span className="text-[10px] font-semibold text-slate-400">Top Registered Institutes</span>
@@ -30,8 +32,13 @@ export default function SchoolEngagementTable({ data = [] }: SchoolEngagementTab
           <tbody className="divide-y divide-slate-50 text-slate-600 font-medium">
             {data.slice(0, 5).map((sch, idx) => {
               const rate = sch.studentsCount > 0 ? ((sch.attendanceCount / sch.studentsCount) * 100).toFixed(0) : "0";
+              const isClickable = !!sch.schoolId && !!onSchoolClick;
               return (
-                <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                <tr
+                  key={idx}
+                  onClick={() => isClickable && onSchoolClick(sch.schoolId!)}
+                  className={`transition-colors ${isClickable ? "cursor-pointer hover:bg-slate-100/60" : "hover:bg-slate-50/50"}`}
+                >
                   <td className="py-3 font-semibold text-slate-700 truncate max-w-[200px]" title={sch.schoolName}>
                     {sch.schoolName}
                   </td>

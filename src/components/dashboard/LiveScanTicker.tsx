@@ -8,6 +8,7 @@ interface LiveScan {
   projectCode?: string;
   stallNumber?: string;
   entryTime: string;
+  gate?: string;
 }
 
 interface LiveScanTickerProps {
@@ -46,9 +47,14 @@ export default function LiveScanTicker({ liveScans }: LiveScanTickerProps) {
                 <span>Stall: {s.stallNumber || "TBD"}</span>
               </div>
             )}
-            <span className="text-[8px] text-slate-400 self-end mt-1">
-              {new Date(s.entryTime).toLocaleTimeString(undefined, { timeStyle: "short" })}
-            </span>
+            <div className="flex justify-between items-center mt-1 border-t border-slate-50 pt-1.5">
+              <span className="text-[8px] font-bold text-slate-400 bg-slate-50 border border-slate-100 px-1 py-0.5 rounded">
+                {s.gate || "Main Gate"}
+              </span>
+              <span className="text-[8px] text-slate-400">
+                {new Date(s.entryTime).toLocaleTimeString(undefined, { timeStyle: "short" })}
+              </span>
+            </div>
           </div>
         ))}
 
