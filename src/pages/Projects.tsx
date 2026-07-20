@@ -104,6 +104,27 @@ export default function Projects() {
     },
   });
 
+  // 5. Unlock Evaluation Mutation
+  const unlockEvaluationMutation = useMutation({
+    mutationFn: (projectId: string) =>
+      api.post(`/api/evaluations/${projectId}/unlock`),
+    onSuccess: () => {
+      setSuccess("Evaluation unlocked successfully. Jury can now re-evaluate.");
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+    onError: (err: any) => {
+      setError(err.message || "Failed to unlock project evaluation.");
+    },
+  });
+
+  const handleUnlockEvaluation = (projectId: string) => {
+    if (window.confirm("Unlock this evaluation? This will allow jury members to edit scores again.")) {
+      setError(null);
+      setSuccess(null);
+      unlockEvaluationMutation.mutate(projectId);
+    }
+  };
+
 
   const handleOpenStallModal = (project: Project) => {
     setSelectedProject(project);
@@ -268,6 +289,7 @@ export default function Projects() {
             isAdminOrEventCoordinator={isAdminOrEventCoordinator}
             onOpenStallModal={handleOpenStallModal}
             onViewDetails={setDetailProject}
+            onUnlockEvaluation={handleUnlockEvaluation}
           />
         ))}
 

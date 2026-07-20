@@ -7,6 +7,7 @@ interface ProjectCardProps {
   isAdminOrEventCoordinator: boolean;
   onOpenStallModal: (project: Project) => void;
   onViewDetails: (project: Project) => void;
+  onUnlockEvaluation?: (projectId: string) => void;
 }
 
 export default function ProjectCard({
@@ -14,6 +15,7 @@ export default function ProjectCard({
   isAdminOrEventCoordinator,
   onOpenStallModal,
   onViewDetails,
+  onUnlockEvaluation,
 }: ProjectCardProps) {
   return (
     <GlassCard 
@@ -111,6 +113,19 @@ export default function ProjectCard({
               <Award className="w-3.5 h-3.5" />
               <span>{proj.score} pts</span>
             </div>
+          )}
+
+          {isAdminOrEventCoordinator && (proj.status === "Evaluated" || proj.score > 0) && onUnlockEvaluation && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onUnlockEvaluation(proj._id);
+              }}
+              className="bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 font-bold px-2 py-1 rounded-lg text-[10px] shadow-sm cursor-pointer flex items-center gap-1 transition-colors"
+              title="Unlock project evaluation for re-evaluation"
+            >
+              <span>Unlock</span>
+            </button>
           )}
 
           {isAdminOrEventCoordinator && (

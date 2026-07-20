@@ -63,8 +63,8 @@ function HomeRedirect() {
     return <Landing />;
   }
 
-  // Redirect to pending approval view if not approved
-  if (user.isApproved === false) {
+  // Redirect to pending approval view if jury member is not approved
+  if (user.role === "jury" && user.isApproved === false) {
     return <ApprovalPending onLogout={logout} />;
   }
 

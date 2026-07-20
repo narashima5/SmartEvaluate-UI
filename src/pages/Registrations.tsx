@@ -68,6 +68,16 @@ export default function Registrations() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [schools, setSchools] = useState<any[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState("");
+  // Pre-bind school ID for school coordinators
+  useEffect(() => {
+    if (user?.role === "school_coordinator" && user.school) {
+      const coordinatorSchoolId = typeof user.school === "object" ? user.school._id : user.school;
+      if (coordinatorSchoolId) {
+        setVSchoolId(String(coordinatorSchoolId));
+        setPSchoolId(String(coordinatorSchoolId));
+      }
+    }
+  }, [user]);
 
 
 
@@ -417,7 +427,7 @@ export default function Registrations() {
                 setActiveModal("bulk");
                 setUploadFile(null);
               }}
-              className="bg-blue-655 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md shadow-blue-500/10 flex items-center gap-1.5 cursor-pointer transition-all"
+              className="bg-[#A90F0F] hover:bg-[#8B0C0C] text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md shadow-red-900/10 flex items-center gap-1.5 cursor-pointer transition-all"
             >
               <Upload className="w-4 h-4" />
               <span>Bulk Upload</span>
@@ -653,20 +663,14 @@ export default function Registrations() {
               </div>
 
               <div className="flex justify-end gap-2 border-t border-slate-50 pt-2.5 mt-1">
-                <button
-                  onClick={() => handleOpenTicket(st)}
-                  className="flex items-center justify-center gap-1.5 flex-grow bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-300 font-bold px-3 py-2 rounded-xl text-xs cursor-pointer shadow-sm"
-                >
-                  <QrCode className="w-4 h-4" />
-                  <span>Ticket</span>
-                </button>
                 {(!activeEvent || activeEvent.status === "active") && (
                   <button
                     onClick={() => handleDelete(st._id)}
-                    className="flex items-center justify-center bg-white hover:bg-red-50 text-red-500 hover:text-red-600 rounded-xl border border-slate-200 hover:border-red-100 p-2.5 transition-all cursor-pointer"
+                    className="flex items-center justify-center bg-white hover:bg-red-50 text-red-500 hover:text-red-600 rounded-xl border border-slate-200 hover:border-red-100 px-3 py-2 text-xs font-semibold transition-all cursor-pointer w-full gap-1"
                     title="Remove registration"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Registration</span>
                   </button>
                 )}
               </div>
@@ -799,7 +803,8 @@ export default function Registrations() {
                 <select
                   value={vSchoolId}
                   onChange={(e) => setVSchoolId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                  disabled={user?.role === "school_coordinator"}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed font-semibold"
                   required
                 >
                   <option value="">Select a school...</option>
@@ -809,6 +814,11 @@ export default function Registrations() {
                     </option>
                   ))}
                 </select>
+                {user?.role === "school_coordinator" && (
+                  <span className="text-[10px] text-emerald-600 font-bold mt-0.5">
+                    🔒 Fixed to your registered school account
+                  </span>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -945,7 +955,8 @@ export default function Registrations() {
                   <select
                     value={pSchoolId}
                     onChange={(e) => setPSchoolId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    disabled={user?.role === "school_coordinator"}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed font-semibold"
                     required
                   >
                     <option value="">Select a school...</option>
@@ -955,6 +966,11 @@ export default function Registrations() {
                       </option>
                     ))}
                   </select>
+                  {user?.role === "school_coordinator" && (
+                    <span className="text-[10px] text-emerald-600 font-bold mt-0.5">
+                      🔒 Fixed to your registered school account
+                    </span>
+                  )}
                 </div>
               </div>
 

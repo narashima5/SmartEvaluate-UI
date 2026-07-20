@@ -164,11 +164,15 @@ export default function Reports() {
       {/* Print Specific CSS Styles */}
       <style>{`
         @media print {
+          @page {
+            size: A4 landscape;
+            margin: 10mm;
+          }
           body {
             background: white !important;
             color: black !important;
           }
-          nav, header, sidebar, button {
+          nav, header, sidebar, button, .no-print {
             display: none !important;
           }
           #print-modal-overlay {
@@ -192,6 +196,18 @@ export default function Reports() {
             width: 100% !important;
             padding: 0 !important;
             margin: 0 !important;
+          }
+          table {
+            width: 100% !important;
+            font-size: 9px !important;
+            border-collapse: collapse !important;
+          }
+          th, td {
+            padding: 3px 5px !important;
+            word-break: break-word !important;
+          }
+          tr {
+            page-break-inside: avoid !important;
           }
         }
       `}</style>
@@ -256,7 +272,7 @@ export default function Reports() {
                 <button
                   onClick={() => handlePreviewPdf(rep.id, rep.title)}
                   disabled={previewing || downloading !== null}
-                  className="bg-blue-650 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-sm disabled:opacity-75"
+                  className="bg-[#A90F0F] hover:bg-[#8B0C0C] text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-sm disabled:opacity-75"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>PDF Print</span>

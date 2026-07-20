@@ -13,8 +13,8 @@ export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
-  // If user is not approved, redirect to home page where the pending screen is rendered
-  if (user && user.isApproved === false) {
+  // If user is not approved (applies to jury role), redirect to home page where the pending screen is rendered
+  if (user && user.role === "jury" && user.isApproved === false) {
     return <Navigate to="/" replace />;
   }
 
