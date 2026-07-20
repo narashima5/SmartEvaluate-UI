@@ -103,10 +103,14 @@ function App() {
               <Route path="approvals" element={<Approvals />} />
             </Route>
 
+            {/* Admin & Event Coordinator */}
+            <Route element={<ProtectedRoute allowedRoles={["super_admin", "event_coordinator"]} />}>
+              <Route path="schools" element={<Schools />} />
+            </Route>
+
             {/* Super Admin Only */}
             <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
               <Route path="events" element={<Events />} />
-              <Route path="schools" element={<Schools />} />
               <Route path="criteria" element={<Criteria />} />
               <Route path="audits" element={<Audits />} />
             </Route>

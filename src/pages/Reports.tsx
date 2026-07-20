@@ -164,23 +164,34 @@ export default function Reports() {
       {/* Print Specific CSS Styles */}
       <style>{`
         @media print {
-          body * {
-            visibility: hidden;
+          body {
+            background: white !important;
+            color: black !important;
           }
-          #print-section, #print-section * {
-            visibility: visible;
+          nav, header, sidebar, button {
+            display: none !important;
+          }
+          #print-modal-overlay {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            z-index: 999999 !important;
+            display: block !important;
           }
           #print-section {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            padding: 20px;
-            background: white;
-            color: black;
-          }
-          .no-print {
-            display: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            max-height: none !important;
+            overflow: visible !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
           }
         }
       `}</style>
@@ -294,7 +305,7 @@ export default function Reports() {
 
       {/* PDF Print Preview Modal */}
       {previewData && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto no-print">
+        <div id="print-modal-overlay" className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <GlassCard className="w-full max-w-4xl p-6 bg-white border-slate-200/50 shadow-2xl relative my-8 flex flex-col gap-4">
             <button
               onClick={() => setPreviewData(null)}

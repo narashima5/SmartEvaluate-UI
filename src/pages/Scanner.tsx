@@ -1,393 +1,705 @@
-import { useState, useEffect, useRef } from "react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { useState, useEffect } from "react";
 import { api } from "../utils/api";
 import GlassCard from "../components/GlassCard";
 import {
+  Users,
+  Plus,
   Search,
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
-  Camera,
-  Loader2,
-  Check,
   Sparkles,
+  Loader2,
+  X,
+  PlusCircle,
+  Trash2,
 } from "lucide-react";
-import type { Student } from "../types";
-
-interface ScanResult {
-  status: "success" | "duplicate" | "invalid" | "error";
-  message: string;
-  student?: {
-    name: string;
-    school: string;
-    category: string;
-    registrationNumber: string;
-    projectCode?: string;
-    stallNumber?: string;
-    entryTime?: string;
-  };
-}
+import type { Student, Event, School } from "../types";
 
 export default function Scanner() {
-  const [activeTab, setActiveTab] = useState<"scan" | "manual">("scan");
-  const [gate, setGate] = useState("Main Entrance");
-  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
-  const [scanning, setScanning] = useState(false);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [activeEvent, setActiveEvent] = useState<Event | null>(null);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  // Manual Check-in States
+  // Search & Filters
   const [search, setSearch] = useState("");
-  const [searchResults, setSearchResults] = useState<Student[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [checkingInId, setCheckingInId] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [schoolFilter, setSchoolFilter] = useState("");
+  const [classFilter, setClassFilter] = useState("");
 
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  // Modals
+  const [activeModal, setActiveModal] = useState<"visitor" | "project" | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Initialize QR scanner on tab mount
-  useEffect(() => {
-    if (activeTab !== "scan") {
-      if (scannerRef.current) {
-        try {
-          scannerRef.current.clear();
-        } catch (e) {
-          console.error(e);
-        }
-        scannerRef.current = null;
+  // Visitor Form State
+  const [vName, setVName] = useState("");
+  const [vGender, setVGender] = useState("Male");
+  const [vDob, setVDob] = useState("");
+  const [vClass, setVClass] = useState("");
+  const [vSection, setVSection] = useState("");
+  const [vTeacher, setVTeacher] = useState("");
+  const [vContact, setVContact] = useState("");
+  const [vPhone, setVPhone] = useState("");
+  const [vSchoolId, setVSchoolId] = useState("");
+
+  // Presenter Form State
+  const [pTitle, setPTitle] = useState("");
+  const [pAbstract, setPAbstract] = useState("");
+  const [pTeamName, setPTeamName] = useState("");
+  const [pGuide, setPGuide] = useState("");
+  const [pDesc, setPDesc] = useState("");
+  const [pSchoolId, setPSchoolId] = useState("");
+  const [members, setMembers] = useState<any[]>([
+    { name: "", gender: "Male", dob: "", class: "", section: "", emergencyContact: "", phone: "" },
+  ]);
+
+  const fetchData = async () => {
+    try {
+      const evt = await api.get("/api/events/active").catch(() => null);
+      if (evt && evt._id) setActiveEvent(evt);
+
+      const schList = await api.get("/api/schools").catch(() => []);
+      setSchools(schList);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      let endpoint = "/api/students";
+      const params = [];
+      if (search) params.push(`search=${encodeURIComponent(search)}`);
+      if (categoryFilter) params.push(`category=${encodeURIComponent(categoryFilter)}`);
+      if (schoolFilter) params.push(`schoolId=${encodeURIComponent(schoolFilter)}`);
+      if (classFilter) params.push(`class=${encodeURIComponent(classFilter)}`);
+      if (activeEvent) params.push(`eventId=${activeEvent._id}`);
+
+      if (params.length > 0) {
+        endpoint += `?${params.join("&")}`;
       }
+
+      const data = await api.get(endpoint);
+      setStudents(data);
+    } catch (err: any) {
+      setError("Failed to fetch students list.");
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    fetchStudents();
+  }, [activeEvent, search, categoryFilter, schoolFilter, classFilter]);
+
+  const handleAddMember = () => {
+    if (members.length >= 4) return;
+    setMembers((prev) => [
+      ...prev,
+      { name: "", gender: "Male", dob: "", class: "", section: "", emergencyContact: "", phone: "" },
+    ]);
+  };
+
+  const handleRemoveMember = (idx: number) => {
+    if (members.length === 1) return;
+    setMembers((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleMemberChange = (idx: number, field: string, val: string) => {
+    setMembers((prev) =>
+      prev.map((m, i) => (i === idx ? { ...m, [field]: val } : m))
+    );
+  };
+
+  const handleVisitorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeEvent) {
+      setError("No active exhibition event selected.");
       return;
     }
-
-    setScanning(true);
-    const scanner = new Html5QrcodeScanner(
-      "qr-reader",
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-      },
-      false
-    );
-
-    scanner.render(handleScanSuccess, handleScanError);
-    scannerRef.current = scanner;
-
-    return () => {
-      if (scannerRef.current) {
-        try {
-          scannerRef.current.clear();
-        } catch (e) {
-          console.error("Cleanup scanner error", e);
-        }
-      }
-    };
-  }, [activeTab]);
-
-  const handleScanSuccess = async (decodedText: string) => {
-    // Stop scanning briefly to prevent double scans
-    if (scannerRef.current) {
-      try {
-        // We let the scanner continue but throttle API calls by checking state
-      } catch (e) {}
-    }
-
-    setScanResult(null);
+    setError(null);
+    setSuccess(null);
+    setSubmitting(true);
 
     try {
-      const response = await api.post("/api/checkin/verify", {
-        qrToken: decodedText,
-        gate,
+      await api.post("/api/students/register-visitor", {
+        name: vName,
+        gender: vGender,
+        dob: new Date(vDob),
+        class: vClass,
+        section: vSection,
+        teacherName: vTeacher,
+        emergencyContact: vContact,
+        phone: vPhone,
+        eventId: activeEvent._id,
+        schoolId: vSchoolId,
       });
 
-      if (response && response.status) {
-        setScanResult({
-          status: response.status,
-          message: response.message,
-          student: response.student,
-        });
-        
-        // Play success beep sound
-        playScanBeep(response.status === "success");
-      }
+      setSuccess("Visitor registered and checked in successfully.");
+      setActiveModal(null);
+      resetVisitorForm();
+      fetchStudents();
     } catch (err: any) {
-      console.error("Scan processing error:", err);
-      const errData = err.data || {};
-      if (errData.status) {
-        setScanResult({
-          status: errData.status,
-          message: errData.message || err.message,
-          student: errData.student,
-        });
-        playScanBeep(errData.status === "success");
-      } else {
-        setScanResult({
-          status: "error",
-          message: err.message || "Failed to process ticket entry.",
-        });
-        playScanBeep(false);
-      }
-    }
-  };
-
-  const handleScanError = () => {
-    // Silent
-  };
-
-  const playScanBeep = (isSuccess: boolean) => {
-    try {
-      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(isSuccess ? 880 : 330, context.currentTime); // A5 for success, E3 for error
-      gainNode.gain.setValueAtTime(0.1, context.currentTime);
-
-      oscillator.start();
-      oscillator.stop(context.currentTime + (isSuccess ? 0.15 : 0.3));
-    } catch (e) {
-      console.log("AudioContext blocked or unsupported.");
-    }
-  };
-
-  // Search for manual check-in
-  const handleSearch = async () => {
-    if (!search.trim()) return;
-    setSearching(true);
-    setScanResult(null);
-
-    try {
-      const data = await api.get(`/api/students?search=${encodeURIComponent(search)}&checkedIn=false`);
-      setSearchResults(data);
-    } catch (err) {
-      console.error("Manual search failed", err);
+      setError(err.message || "Failed to register visitor.");
     } finally {
-      setSearching(false);
+      setSubmitting(false);
     }
   };
 
-  const handleManualCheckIn = async (student: Student) => {
-    setCheckingInId(student._id);
-    setScanResult(null);
+  const resetVisitorForm = () => {
+    setVName("");
+    setVGender("Male");
+    setVDob("");
+    setVClass("");
+    setVSection("");
+    setVTeacher("");
+    setVContact("");
+    setVPhone("");
+    setVSchoolId("");
+  };
+
+  const handleProjectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeEvent) {
+      setError("No active exhibition event selected.");
+      return;
+    }
+    setError(null);
+    setSuccess(null);
+    setSubmitting(true);
+
+    const formattedMembers = members.map((m) => ({
+      ...m,
+      dob: new Date(m.dob),
+    }));
 
     try {
-      // 1. Get signed token for this student
-      const signData = await api.get(`/api/checkin/sign/${student._id}`);
-      
-      // 2. Process check-in
-      const response = await api.post("/api/checkin/verify", {
-        qrToken: signData.token,
-        gate,
+      await api.post("/api/students/register-project", {
+        projectTitle: pTitle,
+        projectAbstract: pAbstract,
+        teamName: pTeamName,
+        guideTeacher: pGuide,
+        projectDescription: pDesc,
+        members: formattedMembers,
+        eventId: activeEvent._id,
+        schoolId: pSchoolId,
       });
 
-      setScanResult({
-        status: response.status,
-        message: response.message,
-        student: response.student,
-      });
-
-      playScanBeep(true);
-      // Remove student from search results list
-      setSearchResults((prev) => prev.filter((s) => s._id !== student._id));
+      setSuccess(`Project Team "${pTeamName}" registered successfully.`);
+      setActiveModal(null);
+      resetProjectForm();
+      fetchStudents();
     } catch (err: any) {
-      setScanResult({
-        status: "error",
-        message: err.message || "Failed to complete manual check-in.",
-      });
-      playScanBeep(false);
+      setError(err.message || "Failed to register presenter team.");
     } finally {
-      setCheckingInId(null);
+      setSubmitting(false);
     }
+  };
+
+  const resetProjectForm = () => {
+    setPTitle("");
+    setPAbstract("");
+    setPTeamName("");
+    setPGuide("");
+    setPDesc("");
+    setPSchoolId("");
+    setMembers([{ name: "", gender: "Male", dob: "", class: "", section: "", emergencyContact: "", phone: "" }]);
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-xl mx-auto">
-      {/* Header */}
-      <div className="border-b border-slate-200 pb-5 text-center flex flex-col gap-1">
-        <div className="flex items-center justify-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
-          <Sparkles className="w-4 h-4" />
-          <span>Volunteer Portal</span>
+    <div className="flex flex-col gap-6">
+      {/* Title */}
+      <div className="border-b border-slate-200 pb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
+            <Sparkles className="w-4 h-4" />
+            <span>Volunteer Portal</span>
+          </div>
+          <h2 className="text-2xl font-bold font-display text-slate-800">Student Entry Desk</h2>
         </div>
-        <h2 className="text-2xl font-bold font-display text-slate-800 font-display">Gate Check-in Desk</h2>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              setError(null);
+              setSuccess(null);
+              resetVisitorForm();
+              setActiveModal("visitor");
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Register Visitor</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setError(null);
+              setSuccess(null);
+              resetProjectForm();
+              setActiveModal("project");
+            }}
+            className="bg-slate-800 hover:bg-slate-900 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            <Users className="w-4 h-4" />
+            <span>Register Presenter Team</span>
+          </button>
+        </div>
       </div>
 
-      {/* Selector and Gate config */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1">
-          <label className="text-[9px] font-bold text-slate-400 uppercase">Entrance Gate Location</label>
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-semibold">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-xl text-xs font-semibold">
+          {success}
+        </div>
+      )}
+
+      {/* Filter and Search Bar */}
+      <GlassCard className="p-4 border-slate-200/50 bg-white/70 shadow-sm flex flex-col md:flex-row items-center gap-3 justify-between">
+        <div className="relative w-full md:max-w-xs">
+          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+            <Search className="w-4 h-4" />
+          </span>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, reg no, class..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-blue-500 shadow-sm"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
           <select
-            value={gate}
-            onChange={(e) => setGate(e.target.value)}
-            className="bg-white border border-slate-200 text-slate-700 font-semibold px-3 py-2.5 rounded-xl text-xs focus:outline-none focus:border-blue-500 shadow-sm"
+            value={schoolFilter}
+            onChange={(e) => setSchoolFilter(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl text-xs focus:outline-none focus:border-blue-500 shadow-sm cursor-pointer"
           >
-            <option value="Main Entrance">Main Entrance</option>
-            <option value="Auditorium Gate">Auditorium Gate</option>
-            <option value="Exhibition Pavilion A">Exhibition Pavilion A</option>
-            <option value="Exhibition Pavilion B">Exhibition Pavilion B</option>
+            <option value="">All Schools</option>
+            {schools.map((sch) => (
+              <option key={sch._id} value={sch._id}>
+                {sch.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl text-xs focus:outline-none focus:border-blue-500 shadow-sm cursor-pointer"
+          >
+            <option value="">All Categories</option>
+            <option value="Visitor">Visitor</option>
+            <option value="Project Presenter">Project Presenter</option>
+          </select>
+
+          <select
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl text-xs focus:outline-none focus:border-blue-500 shadow-sm cursor-pointer"
+          >
+            <option value="">All Classes</option>
+            {["6", "7", "8", "9", "10", "11", "12"].map((cls) => (
+              <option key={cls} value={cls}>
+                Class {cls}
+              </option>
+            ))}
           </select>
         </div>
+      </GlassCard>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-[9px] font-bold text-slate-400 uppercase">Check-in Mode</label>
-          <div className="bg-slate-100 p-0.5 rounded-xl flex gap-1 h-full items-center">
-            <button
-              onClick={() => setActiveTab("scan")}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === "scan" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500"
-              }`}
-            >
-              Camera Scan
-            </button>
-            <button
-              onClick={() => setActiveTab("manual")}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === "manual" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500"
-              }`}
-            >
-              Manual Lookup
-            </button>
-          </div>
+      {/* Registrations List */}
+      <GlassCard className="border-slate-200/50 bg-white/70 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-100 text-slate-400 font-bold bg-slate-50/50">
+                <th className="p-4">Reg Number</th>
+                <th className="p-4">Student Name</th>
+                <th className="p-4">School Name</th>
+                <th className="p-4">Category</th>
+                <th className="p-4">Class & Section</th>
+                <th className="p-4">Accompanying Teacher</th>
+                <th className="p-4 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
+              {students.map((st) => {
+                const schoolName = typeof st.school === "object" && st.school?.name ? st.school.name : "N/A";
+                return (
+                  <tr key={st._id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-4 font-bold text-blue-600 font-mono">{st.registrationNumber}</td>
+                    <td className="p-4">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-bold text-slate-800">{st.name}</span>
+                        <span className="text-[10px] text-slate-400 capitalize">{st.gender}</span>
+                      </div>
+                    </td>
+                    <td className="p-4 font-semibold text-slate-700 max-w-[200px] truncate" title={schoolName}>
+                      {schoolName}
+                    </td>
+                    <td className="p-4">
+                      <span
+                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                          st.category === "Visitor"
+                            ? "bg-slate-50 text-slate-600 border-slate-200"
+                            : "bg-blue-50 text-blue-600 border-blue-100"
+                        }`}
+                      >
+                        {st.category}
+                      </span>
+                    </td>
+                    <td className="p-4">Class {st.class}-{st.section}</td>
+                    <td className="p-4">{st.teacherName}</td>
+                    <td className="p-4 text-center">
+                      <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full">
+                        Checked In
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {students.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="p-12 text-center text-slate-400">
+                    No student registrations found for selected filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </div>
+      </GlassCard>
 
-      {/* Visual Scan Results State */}
-      {scanResult && (
-        <GlassCard
-          className={`p-5 border-l-4 shadow-md ${
-            scanResult.status === "success"
-              ? "border-emerald-500 bg-emerald-50/20 text-emerald-900 border-emerald-100"
-              : scanResult.status === "duplicate"
-              ? "border-amber-500 bg-amber-50/20 text-amber-900 border-amber-100"
-              : "border-red-500 bg-red-50/20 text-red-900 border-red-100"
-          }`}
-        >
-          <div className="flex gap-4">
-            <div className="flex-shrink-0">
-              {scanResult.status === "success" && <CheckCircle className="w-8 h-8 text-emerald-500" />}
-              {scanResult.status === "duplicate" && <AlertTriangle className="w-8 h-8 text-amber-500" />}
-              {(scanResult.status === "invalid" || scanResult.status === "error") && (
-                <XCircle className="w-8 h-8 text-red-500" />
-              )}
-            </div>
-
-            <div className="flex-grow flex flex-col gap-1.5">
-              <h4 className="font-extrabold text-sm capitalize">{scanResult.message}</h4>
-              
-              {scanResult.student && (
-                <div className="flex flex-col gap-1 text-xs text-slate-600 mt-2 font-medium">
-                  <div className="flex justify-between border-b border-slate-100/50 pb-1">
-                    <span>Name</span>
-                    <span className="font-bold text-slate-800">{scanResult.student.name}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-100/50 pb-1">
-                    <span>School</span>
-                    <span className="font-semibold text-slate-700 max-w-[200px] truncate">{scanResult.student.school}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-100/50 pb-1">
-                    <span>Category</span>
-                    <span className="font-semibold text-slate-700">{scanResult.student.category}</span>
-                  </div>
-                  {scanResult.student.projectCode && (
-                    <div className="flex justify-between items-center text-[10px] font-bold text-blue-600 bg-blue-50/50 border border-blue-100 px-2 py-0.5 rounded-md mt-1">
-                      <span>Project: {scanResult.student.projectCode}</span>
-                      <span>Stall: {scanResult.student.stallNumber || "Not Assigned"}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </GlassCard>
-      )}
-
-      {/* Camera Scan Window */}
-      {activeTab === "scan" && (
-        <GlassCard className="p-6 border-slate-200/50 bg-white/70 shadow-sm flex flex-col items-center gap-4">
-          <div className="w-full max-w-sm rounded-2xl overflow-hidden border border-slate-200 shadow-inner bg-slate-900 relative">
-            <div id="qr-reader" className="w-full" />
-            {!scanning && (
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-950/70 text-white text-xs font-bold gap-2">
-                <Camera className="w-4 h-4" />
-                <span>Camera loading...</span>
-              </div>
-            )}
-          </div>
-          <div className="text-center text-xs text-slate-400 leading-normal max-w-xs mt-1">
-            Ensure the ticket QR code is aligned inside the scanner overlay. Do not scan photocopied or low-contrast images.
-          </div>
-        </GlassCard>
-      )}
-
-      {/* Manual lookup list */}
-      {activeTab === "manual" && (
-        <GlassCard className="p-6 border-slate-200/50 bg-white/70 shadow-sm flex flex-col gap-4">
-          <h3 className="font-bold text-slate-800 text-sm">Lookup Student Registration</h3>
-          
-          <div className="flex gap-2">
-            <div className="relative flex-grow">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
-                <Search className="w-4 h-4" />
-              </span>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Search name, class, registration number..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs bg-white"
-              />
-            </div>
+      {/* Visitor Modal */}
+      {activeModal === "visitor" && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <GlassCard className="w-full max-w-md p-6 bg-white border-slate-200/50 shadow-2xl relative my-8">
             <button
-              onClick={handleSearch}
-              disabled={searching}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs cursor-pointer shadow-sm disabled:opacity-75"
+              onClick={() => setActiveModal(null)}
+              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
             >
-              {searching ? "Searching..." : "Search"}
+              <X className="w-5 h-5" />
             </button>
-          </div>
+            <h3 className="font-extrabold text-slate-800 text-base mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-600" />
+              <span>Register Visitor Student</span>
+            </h3>
 
-          {/* Results list */}
-          <div className="flex flex-col gap-2 mt-2 max-h-60 overflow-y-auto">
-            {searchResults.map((st) => (
-              <div
-                key={st._id}
-                className="p-3 bg-white border border-slate-100 rounded-xl flex items-center justify-between gap-4 shadow-sm"
+            <form onSubmit={handleVisitorSubmit} className="flex flex-col gap-3.5">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Student Name *</label>
+                <input
+                  type="text"
+                  value={vName}
+                  onChange={(e) => setVName(e.target.value)}
+                  placeholder="Student Full Name"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">School *</label>
+                <select
+                  value={vSchoolId}
+                  onChange={(e) => setVSchoolId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white cursor-pointer"
+                  required
+                >
+                  <option value="">Select School</option>
+                  {schools.map((s) => (
+                    <option key={s._id} value={s._id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Gender *</label>
+                  <select
+                    value={vGender}
+                    onChange={(e) => setVGender(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Date of Birth *</label>
+                  <input
+                    type="date"
+                    value={vDob}
+                    onChange={(e) => setVDob(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Class *</label>
+                  <input
+                    type="text"
+                    value={vClass}
+                    onChange={(e) => setVClass(e.target.value)}
+                    placeholder="8"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Section *</label>
+                  <input
+                    type="text"
+                    value={vSection}
+                    onChange={(e) => setVSection(e.target.value)}
+                    placeholder="A"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Accompanying Teacher *</label>
+                <input
+                  type="text"
+                  value={vTeacher}
+                  onChange={(e) => setVTeacher(e.target.value)}
+                  placeholder="Teacher Name"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Emergency Contact *</label>
+                  <input
+                    type="text"
+                    value={vContact}
+                    onChange={(e) => setVContact(e.target.value)}
+                    placeholder="Parent/Guardian Phone"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Student Mobile *</label>
+                  <input
+                    type="text"
+                    value={vPhone}
+                    onChange={(e) => setVPhone(e.target.value)}
+                    placeholder="Student Mobile Number"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs shadow-md mt-2 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75"
               >
-                <div className="flex flex-col gap-0.5 max-w-[280px]">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-slate-800 text-xs">{st.name}</span>
-                    <span className="text-[9px] font-mono text-blue-600 font-bold bg-blue-50 px-1 py-0.5 rounded leading-none">
-                      {st.registrationNumber}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-medium truncate">
-                    Class {st.class}-{st.section} • {st.category}
-                  </span>
+                {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>Register & Check In</span>}
+              </button>
+            </form>
+          </GlassCard>
+        </div>
+      )}
+
+      {/* Project Presenter Team Modal */}
+      {activeModal === "project" && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <GlassCard className="w-full max-w-2xl p-6 bg-white border-slate-200/50 shadow-2xl relative my-8">
+            <button
+              onClick={() => setActiveModal(null)}
+              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="font-extrabold text-slate-800 text-base mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-600" />
+              <span>Register Project Presenter Team</span>
+            </h3>
+
+            <form onSubmit={handleProjectSubmit} className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Project Title *</label>
+                  <input
+                    type="text"
+                    value={pTitle}
+                    onChange={(e) => setPTitle(e.target.value)}
+                    placeholder="E.g. Smart Solar Grid"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">School *</label>
+                  <select
+                    value={pSchoolId}
+                    onChange={(e) => setPSchoolId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white cursor-pointer"
+                    required
+                  >
+                    <option value="">Select School</option>
+                    {schools.map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Team Name *</label>
+                  <input
+                    type="text"
+                    value={pTeamName}
+                    onChange={(e) => setPTeamName(e.target.value)}
+                    placeholder="E.g. Innovators Team A"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Guide Teacher Name *</label>
+                  <input
+                    type="text"
+                    value={pGuide}
+                    onChange={(e) => setPGuide(e.target.value)}
+                    placeholder="Guide Teacher Name"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Project Abstract *</label>
+                <textarea
+                  value={pAbstract}
+                  onChange={(e) => setPAbstract(e.target.value)}
+                  placeholder="Brief summary of the project innovation..."
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                  required
+                />
+              </div>
+
+              {/* Members */}
+              <div className="flex flex-col gap-3 border-t border-slate-100 pt-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-700">Team Members (Max 4)</label>
+                  {members.length < 4 && (
+                    <button
+                      type="button"
+                      onClick={handleAddMember}
+                      className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      <span>Add Member</span>
+                    </button>
+                  )}
                 </div>
 
-                <button
-                  onClick={() => handleManualCheckIn(st)}
-                  disabled={checkingInId === st._id}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-2 rounded-xl text-[10px] flex items-center gap-1 cursor-pointer disabled:opacity-75"
-                >
-                  {checkingInId === st._id ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Check className="w-3 h-3" />
-                  )}
-                  <span>Check In</span>
-                </button>
-              </div>
-            ))}
+                {members.map((m, idx) => (
+                  <div key={idx} className="p-3 bg-slate-50/70 border border-slate-200/70 rounded-xl flex flex-col gap-2 relative">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Member #{idx + 1}</span>
+                      {members.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMember(idx)}
+                          className="text-red-500 hover:text-red-700 p-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
 
-            {searchResults.length === 0 && search && !searching && (
-              <div className="py-8 text-center text-xs text-slate-400">
-                No matching unregistered students found.
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Student Name *"
+                        value={m.name}
+                        onChange={(e) => handleMemberChange(idx, "name", e.target.value)}
+                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white"
+                        required
+                      />
+                      <select
+                        value={m.gender}
+                        onChange={(e) => handleMemberChange(idx, "gender", e.target.value)}
+                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white"
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                      <input
+                        type="date"
+                        value={m.dob}
+                        onChange={(e) => handleMemberChange(idx, "dob", e.target.value)}
+                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white"
+                        required
+                      />
+                      <input
+                        type="text"
+                        placeholder="Class *"
+                        value={m.class}
+                        onChange={(e) => handleMemberChange(idx, "class", e.target.value)}
+                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white"
+                        required
+                      />
+                      <input
+                        type="text"
+                        placeholder="Section *"
+                        value={m.section}
+                        onChange={(e) => handleMemberChange(idx, "section", e.target.value)}
+                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white"
+                        required
+                      />
+                      <input
+                        type="text"
+                        placeholder="Student Mobile *"
+                        value={m.phone}
+                        onChange={(e) => handleMemberChange(idx, "phone", e.target.value)}
+                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white"
+                        required
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        </GlassCard>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs shadow-md mt-2 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75"
+              >
+                {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>Register Presenter Team</span>}
+              </button>
+            </form>
+          </GlassCard>
+        </div>
       )}
     </div>
   );

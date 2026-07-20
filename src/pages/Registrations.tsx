@@ -30,6 +30,8 @@ export default function Registrations() {
   // Search & Filter
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [schoolFilter, setSchoolFilter] = useState("");
+  const [classFilter, setClassFilter] = useState("");
 
   // Modal Controls
   const [activeModal, setActiveModal] = useState<"visitor" | "project" | "ticket" | "bulk" | null>(null);
@@ -87,6 +89,8 @@ export default function Registrations() {
       const params = [];
       if (search) params.push(`search=${encodeURIComponent(search)}`);
       if (categoryFilter) params.push(`category=${encodeURIComponent(categoryFilter)}`);
+      if (schoolFilter) params.push(`schoolId=${encodeURIComponent(schoolFilter)}`);
+      if (classFilter) params.push(`class=${encodeURIComponent(classFilter)}`);
       if (activeEvent) params.push(`eventId=${activeEvent._id}`);
       
       if (params.length > 0) {
@@ -115,7 +119,7 @@ export default function Registrations() {
     } else {
       setLoading(false);
     }
-  }, [activeEvent, search, categoryFilter]);
+  }, [activeEvent, search, categoryFilter, schoolFilter, classFilter]);
 
   const handleAddMember = () => {
     if (members.length >= 4) return; // Limit 4 per project
@@ -448,8 +452,8 @@ export default function Registrations() {
       )}
 
       {/* Filter and Search Bar */}
-      <GlassCard className="p-4 border-slate-200/50 bg-white/70 shadow-sm flex flex-col md:flex-row items-center gap-4 justify-between">
-        <div className="relative w-full md:max-w-md">
+      <GlassCard className="p-4 border-slate-200/50 bg-white/70 shadow-sm flex flex-col md:flex-row items-center gap-3 justify-between">
+        <div className="relative w-full md:max-w-xs">
           <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
             <Search className="w-4 h-4" />
           </span>
@@ -457,21 +461,48 @@ export default function Registrations() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, reg number, class, or escort..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+            placeholder="Search by name, reg no, class..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-blue-500 shadow-sm"
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-          <label className="text-xs font-bold text-slate-400 uppercase">Category:</label>
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+          {schools.length > 0 && (
+            <select
+              value={schoolFilter}
+              onChange={(e) => setSchoolFilter(e.target.value)}
+              className="bg-white border border-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl text-xs focus:outline-none focus:border-blue-500 shadow-sm cursor-pointer"
+            >
+              <option value="">All Schools</option>
+              {schools.map((sch) => (
+                <option key={sch._id} value={sch._id}>
+                  {sch.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="bg-white border border-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-xs focus:outline-none focus:border-blue-500 shadow-sm"
+            className="bg-white border border-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl text-xs focus:outline-none focus:border-blue-500 shadow-sm cursor-pointer"
           >
             <option value="">All Categories</option>
             <option value="Visitor">Visitor</option>
             <option value="Project Presenter">Project Presenter</option>
+          </select>
+
+          <select
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl text-xs focus:outline-none focus:border-blue-500 shadow-sm cursor-pointer"
+          >
+            <option value="">All Classes</option>
+            {["6", "7", "8", "9", "10", "11", "12"].map((cls) => (
+              <option key={cls} value={cls}>
+                Class {cls}
+              </option>
+            ))}
           </select>
         </div>
       </GlassCard>
@@ -1128,19 +1159,15 @@ export default function Registrations() {
                     <span className="text-[9px] font-semibold text-slate-400 leading-none mt-0.5">{activeEvent?.venue}</span>
                   </div>
 
-                  {/* QR Code Container */}
-                  <div className="p-3 border-2 border-dashed border-blue-200 bg-blue-50/20 rounded-2xl flex items-center justify-center shadow-inner">
-                    {ticketToken ? (
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(ticketToken)}`}
-                        alt="Signed QR Ticket"
-                        className="w-36 h-36"
-                      />
-                    ) : (
-                      <div className="w-36 h-36 flex items-center justify-center text-[10px] text-red-500 font-semibold bg-white rounded-xl border border-red-100 p-3 leading-normal">
-                        Signature verification failed.
-                      </div>
-                    )}
+                  {/* Official Entry Pass Badge */}
+                  <div className="p-4 border border-slate-200 bg-slate-50/70 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-inner w-full">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">OFFICIAL ADMIT PASS</span>
+                    <span className="text-xl font-extrabold text-blue-600 font-mono tracking-wide">
+                      {selectedStudent.registrationNumber}
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 mt-1">
+                      VERIFIED ENTRANCE PASS
+                    </span>
                   </div>
 
                   {/* Ticket Details */}

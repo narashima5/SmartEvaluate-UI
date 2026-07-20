@@ -9,11 +9,13 @@ import {
   X,
   Check,
 } from "lucide-react";
-import type { Project, Evaluation } from "../types";
+import type { Project, Evaluation, School, Student } from "../types";
 
 export default function Evaluate() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [myEvaluations, setMyEvaluations] = useState<Evaluation[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -35,6 +37,9 @@ export default function Evaluate() {
 
       const evalData = await api.get("/api/evaluations/me");
       setMyEvaluations(evalData);
+
+      const schoolData = await api.get("/api/schools").catch(() => []);
+      setSchools(schoolData || []);
     } catch (err: any) {
       setError(err.message || "Failed to load projects for evaluation.");
     } finally {
@@ -130,17 +135,29 @@ export default function Evaluate() {
 
   const filteredProjects = projects.filter((p) => {
     const term = search.toLowerCase();
-    return (
+    const matchesSearch =
       p.title.toLowerCase().includes(term) ||
       p.projectId.toLowerCase().includes(term) ||
-      p.teamName.toLowerCase().includes(term)
-    );
+      p.teamName.toLowerCase().includes(term);
+
+    let matchesSchool = true;
+    if (selectedSchool) {
+      const firstMember = p.members && p.members.length > 0 ? p.members[0] : null;
+      let projSchoolId = null;
+      if (firstMember && typeof firstMember === "object") {
+        const sch = (firstMember as Student).school;
+        projSchoolId = typeof sch === "object" ? sch?._id : sch;
+      }
+      matchesSchool = String(projSchoolId) === String(selectedSchool);
+    }
+
+    return matchesSearch && matchesSchool;
   });
 
   if (loading && projects.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-blue-600"></div>
       </div>
     );
   }
@@ -171,8 +188,8 @@ export default function Evaluate() {
       )}
 
       {/* Filter and Search Bar */}
-      <GlassCard className="p-4 border-slate-200/50 bg-white/70 shadow-sm">
-        <div className="relative w-full md:max-w-md">
+      <GlassCard className="p-4 border-slate-200/50 bg-white/70 shadow-sm flex flex-col sm:flex-row gap-3">
+        <div className="relative w-full sm:flex-1">
           <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
             <Search className="w-4 h-4" />
           </span>
@@ -184,6 +201,19 @@ export default function Evaluate() {
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-blue-500 shadow-sm"
           />
         </div>
+
+        <select
+          value={selectedSchool}
+          onChange={(e) => setSelectedSchool(e.target.value)}
+          className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500 shadow-sm sm:w-64 cursor-pointer"
+        >
+          <option value="">All Participating Schools</option>
+          {schools.map((sch) => (
+            <option key={sch._id} value={sch._id}>
+              {sch.name}
+            </option>
+          ))}
+        </select>
       </GlassCard>
 
       {/* Project evaluation grid */}
