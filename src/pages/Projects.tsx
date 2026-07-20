@@ -422,31 +422,66 @@ export default function Projects() {
 
               {/* Team Members List */}
               <div className="flex flex-col gap-2.5">
-                <h4 className="font-extrabold text-slate-800 uppercase text-[10px] tracking-wider">Team Members Details</h4>
+                <h4 className="font-extrabold text-slate-800 uppercase text-[10px] tracking-wider flex items-center justify-between">
+                  <span>Team Members Details ({detailProject.members ? (detailProject.members as any[]).length : 0})</span>
+                </h4>
                 <div className="flex flex-col gap-3">
-                  {detailProject.members && (detailProject.members as any[]).map((m, idx) => (
-                    <div key={m._id || idx} className="border border-slate-200/60 rounded-xl p-3.5 bg-white shadow-sm flex flex-col gap-2">
-                      <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                        <span className="font-bold text-slate-800">{m.name}</span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded">{m.gender}</span>
+                  {detailProject.members && (detailProject.members as any[]).map((m: any, idx: number) => {
+                    const schoolName = typeof m.school === "object" ? m.school?.name : "N/A";
+                    const regNum = m.registrationNumber || "N/A";
+                    return (
+                      <div key={m._id || idx} className="border border-slate-200/80 rounded-2xl p-4 bg-white shadow-sm flex flex-col gap-3">
+                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold text-[10px] flex items-center justify-center">
+                              {idx + 1}
+                            </span>
+                            <span className="font-bold text-slate-800 text-sm">{m.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {regNum !== "N/A" && (
+                              <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                                {regNum}
+                              </span>
+                            )}
+                            <span className="text-[9px] font-bold text-slate-500 uppercase bg-slate-100 px-2 py-0.5 rounded-full">
+                              {m.gender || "Student"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-slate-600">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Class & Section</span>
+                            <span className="font-semibold text-slate-700">{m.class ? `Class ${m.class}-${m.section}` : "N/A"}</span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Date of Birth</span>
+                            <span className="font-semibold text-slate-700">{m.dob ? new Date(m.dob).toLocaleDateString() : "N/A"}</span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">School</span>
+                            <span className="font-semibold text-slate-700 truncate">{schoolName}</span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Phone Number</span>
+                            <span className="font-semibold text-slate-700">{m.phone || "N/A"}</span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Emergency Contact</span>
+                            <span className="font-semibold text-slate-700">{m.emergencyContact || "N/A"}</span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Attendance</span>
+                            <span className="font-semibold text-slate-700">{m.checkedIn ? "Checked In" : "Registered"}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-600">
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase">Class/Sec</span>
-                          <span>{m.class} - {m.section}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase">DOB</span>
-                          <span>{m.dob ? new Date(m.dob).toLocaleDateString() : "-"}</span>
-                        </div>
-                        <div className="flex flex-col col-span-2">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase">Contact Details</span>
-                          <span>Ph: {m.phone || "-"}</span>
-                          <span>Alt: {m.emergencyContact || "-"}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                  {(!detailProject.members || detailProject.members.length === 0) && (
+                    <div className="text-center text-xs text-slate-400 py-3">No member details available.</div>
+                  )}
                 </div>
               </div>
             </div>
