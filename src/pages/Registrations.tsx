@@ -7,12 +7,10 @@ import {
   Plus,
   Trash2,
   Search,
-  QrCode,
   Check,
   AlertCircle,
   Loader2,
   X,
-  Printer,
   Sparkles,
   Upload,
   Download,
@@ -34,11 +32,8 @@ export default function Registrations() {
   const [classFilter, setClassFilter] = useState("");
 
   // Modal Controls
-  const [activeModal, setActiveModal] = useState<"visitor" | "project" | "ticket" | "bulk" | null>(null);
+  const [activeModal, setActiveModal] = useState<"visitor" | "project" | "bulk" | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [ticketToken, setTicketToken] = useState<string | null>(null);
-  const [signingTicket, setSigningTicket] = useState(false);
 
   // Visitor Form State
   const [vName, setVName] = useState("");
@@ -102,7 +97,7 @@ export default function Registrations() {
       if (schoolFilter) params.push(`schoolId=${encodeURIComponent(schoolFilter)}`);
       if (classFilter) params.push(`class=${encodeURIComponent(classFilter)}`);
       if (activeEvent) params.push(`eventId=${activeEvent._id}`);
-      
+
       if (params.length > 0) {
         endpoint += `?${params.join("&")}`;
       }
@@ -248,7 +243,8 @@ export default function Registrations() {
         members: members.map((m) => ({
           ...m,
           dob: new Date(m.dob),
-          phone: m.phone.trim(),
+          emergencyContact: m.emergencyContact || m.phone || "N/A",
+          phone: (m.phone || m.emergencyContact || "N/A").trim(),
         })),
       });
 
@@ -272,28 +268,6 @@ export default function Registrations() {
   };
 
 
-
-  // Ticket Modal setup
-  const handleOpenTicket = async (student: Student) => {
-    setSelectedStudent(student);
-    setTicketToken(null);
-    setSigningTicket(true);
-    setActiveModal("ticket");
-
-    try {
-      const data = await api.get(`/api/checkin/sign/${student._id}`);
-      setTicketToken(data.token);
-    } catch (err: any) {
-      setError(err.message || "Failed to generate ticket signature.");
-      setActiveModal(null);
-    } finally {
-      setSigningTicket(false);
-    }
-  };
-
-  const handlePrintTicket = () => {
-    window.print();
-  };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to remove this registration? For presenters, this removes their association to their projects.")) {
@@ -546,11 +520,10 @@ export default function Registrations() {
                   </td>
                   <td className="p-4">
                     <span
-                      className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                        st.category === "Visitor"
+                      className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${st.category === "Visitor"
                           ? "bg-slate-50 text-slate-600 border-slate-200"
                           : "bg-blue-50 text-blue-600 border-blue-100"
-                      }`}
+                        }`}
                     >
                       {st.category}
                     </span>
@@ -577,15 +550,15 @@ export default function Registrations() {
                   </td>
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      <button
+                      {/* <button
                         onClick={() => handleOpenTicket(st)}
                         className="flex items-center gap-1 bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-300 font-bold px-2.5 py-1.5 rounded-lg text-[10px] cursor-pointer shadow-sm"
                         title="Download digital entry QR ticket"
                       >
                         <QrCode className="w-3.5 h-3.5" />
                         <span>Ticket</span>
-                      </button>
-                      
+                      </button> */}
+
                       {(!activeEvent || activeEvent.status === "active") && (
                         <button
                           onClick={() => handleDelete(st._id)}
@@ -623,11 +596,10 @@ export default function Registrations() {
                 </div>
                 <div className="flex flex-col items-end gap-1.5">
                   <span
-                    className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                      st.category === "Visitor"
+                    className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${st.category === "Visitor"
                         ? "bg-slate-50 text-slate-600 border-slate-200"
                         : "bg-blue-50 text-blue-600 border-blue-100"
-                    }`}
+                      }`}
                   >
                     {st.category}
                   </span>
@@ -695,7 +667,7 @@ export default function Registrations() {
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <h3 className="font-extrabold text-slate-800 text-base mb-2 flex items-center gap-2">
               <Upload className="w-5 h-5 text-blue-655" />
               <span>Bulk Student Import</span>
@@ -779,7 +751,7 @@ export default function Registrations() {
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <h3 className="font-extrabold text-slate-800 text-base mb-4 flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-600" />
               <span>Register Individual Visitor</span>
@@ -930,7 +902,7 @@ export default function Registrations() {
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <h3 className="font-extrabold text-slate-800 text-base mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
               <Users className="w-5 h-5 text-blue-600" />
               <span>Register Project Presenter Team</span>
@@ -1038,7 +1010,7 @@ export default function Registrations() {
                           <X className="w-4 h-4" />
                         </button>
                       )}
-                      
+
                       <span className="text-[10px] font-bold text-blue-600 uppercase">Student #{idx + 1}</span>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1144,89 +1116,7 @@ export default function Registrations() {
 
 
 
-      {/* QR Ticket Modal (Printable) */}
-      {activeModal === "ticket" && selectedStudent && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 ticket-modal-overlay">
-          <div className="bg-white border border-slate-200/50 shadow-2xl rounded-3xl p-6 w-full max-w-sm relative flex flex-col gap-6 ticket-card">
-            {/* Close */}
-            <button
-              onClick={() => {
-                setActiveModal(null);
-                setSelectedStudent(null);
-                setTicketToken(null);
-              }}
-              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 no-print"
-            >
-              <X className="w-5 h-5" />
-            </button>
 
-            {signingTicket ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                <span className="text-xs text-slate-400 font-medium">Signing ticket signature...</span>
-              </div>
-            ) : (
-              <>
-                {/* Print Ticket Layout */}
-                <div id="print-area" className="flex flex-col text-center items-center gap-4 relative">
-                  <div className="flex flex-col items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest leading-none">SCIENCE EXPO TICKET</span>
-                    <h4 className="font-extrabold text-slate-800 text-lg leading-tight mt-1">{activeEvent?.title || "National Science Exhibition"}</h4>
-                    <span className="text-[9px] font-semibold text-slate-400 leading-none mt-0.5">{activeEvent?.venue}</span>
-                  </div>
-
-                  {/* Official Entry Pass Badge */}
-                  <div className="p-4 border border-slate-200 bg-slate-50/70 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-inner w-full">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">OFFICIAL ADMIT PASS</span>
-                    <span className="text-xl font-extrabold text-blue-600 font-mono tracking-wide">
-                      {selectedStudent.registrationNumber}
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 mt-1">
-                      VERIFIED ENTRANCE PASS
-                    </span>
-                  </div>
-
-                  {/* Ticket Details */}
-                  <div className="flex flex-col gap-3 text-xs w-full text-slate-600 border-t border-slate-100 pt-4">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-slate-400">Student Name</span>
-                      <span className="font-bold text-slate-800">{selectedStudent.name}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-slate-400">Class & Section</span>
-                      <span className="font-bold text-slate-800">Class {selectedStudent.class}-{selectedStudent.section}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-slate-400">Registration Number</span>
-                      <span className="font-mono font-bold text-blue-600">{selectedStudent.registrationNumber}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-slate-400">Category</span>
-                      <span className="font-bold text-slate-800">{selectedStudent.category}</span>
-                    </div>
-                    <div className="flex justify-between items-center border-t border-slate-50 pt-2.5">
-                      <span className="font-semibold text-slate-400">School Code</span>
-                      <span className="font-bold text-slate-800 uppercase">
-                        {typeof selectedStudent.school === "object" ? selectedStudent.school.code : "School-101"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Print button */}
-                <button
-                  onClick={handlePrintTicket}
-                  disabled={!ticketToken}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs shadow-md no-print flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75"
-                >
-                  <Printer className="w-4 h-4" />
-                  <span>Print Ticket</span>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* CSS printable rule */}
       <style>{`

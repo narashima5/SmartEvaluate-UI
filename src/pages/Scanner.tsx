@@ -172,6 +172,8 @@ export default function Scanner() {
     const formattedMembers = members.map((m) => ({
       ...m,
       dob: new Date(m.dob),
+      emergencyContact: m.emergencyContact || m.phone || "N/A",
+      phone: (m.phone || m.emergencyContact || "N/A").trim(),
     }));
 
     try {
