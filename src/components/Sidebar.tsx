@@ -10,6 +10,7 @@ import {
   QrCode,
   ClipboardCheck,
   Award,
+  Trophy,
   LogOut,
   UserCircle,
 } from "lucide-react";
@@ -43,6 +44,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       case "super_admin":
         return [
           { path: "/dashboard", label: "Analytics Dashboard", icon: LayoutDashboard },
+          { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
           { path: "/events", label: "Manage Events", icon: Calendar },
           { path: "/schools", label: "Manage Schools", icon: SchoolIcon },
           { path: "/criteria", label: "Evaluation Criteria", icon: Award },
@@ -70,6 +72,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       case "event_coordinator":
         return [
           { path: "/dashboard", label: "Live Dashboard", icon: LayoutDashboard },
+          { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
           { path: "/projects", label: "Stalls Map", icon: Briefcase },
           { path: "/attendance", label: "Check-in Log", icon: ClipboardCheck },
           { path: "/approvals", label: "User Approvals", icon: Users },
