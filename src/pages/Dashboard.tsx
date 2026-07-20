@@ -99,7 +99,12 @@ export default function Dashboard() {
   useEffect(() => {
     if (!selectedEventId) return;
 
-    const API_URL = import.meta.env.VITE_API_URL || "";
+    const API_URL =
+      import.meta.env.VITE_API_URL ||
+      (typeof window !== "undefined" && window.location.hostname === "localhost"
+        ? "http://localhost:5000"
+        : "");
+
     const socket = io(API_URL, {
       transports: ["websocket", "polling"],
       withCredentials: true,
