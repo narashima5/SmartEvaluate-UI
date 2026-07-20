@@ -13,7 +13,7 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
-import type { Project, Event, Domain } from "../types";
+import type { Project, Event } from "../types";
 
 // const DOMAINS: Domain[] = [
 //   "AI / Generative AI",
@@ -33,7 +33,7 @@ export default function Projects() {
 
   // Search & Filter
   const [search, setSearch] = useState("");
-  const [domainFilter, setDomainFilter] = useState("");
+  // const [domainFilter, setDomainFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
   // Stall Assignment Modal state
@@ -59,12 +59,12 @@ export default function Projects() {
 
   // 2. Fetch Projects Query
   const { data: projects = [], isLoading: isProjectsLoading, error: queryError } = useQuery<Project[]>({
-    queryKey: ["projects", activeEvent?._id, search, domainFilter, statusFilter],
+    queryKey: ["projects", activeEvent?._id, search, statusFilter],
     queryFn: () => {
       let endpoint = "/api/projects";
       const params = [];
       if (search) params.push(`search=${encodeURIComponent(search)}`);
-      if (domainFilter) params.push(`domain=${encodeURIComponent(domainFilter)}`);
+      // if (domainFilter) params.push(`domain=${encodeURIComponent(domainFilter)}`);
       if (statusFilter) params.push(`status=${encodeURIComponent(statusFilter)}`);
       if (activeEvent?._id) params.push(`eventId=${activeEvent._id}`);
 
