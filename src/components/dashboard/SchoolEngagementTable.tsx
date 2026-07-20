@@ -29,7 +29,6 @@ export default function SchoolEngagementTable({ data = [], onSchoolClick }: Scho
           <thead>
             <tr className="border-b border-slate-100 text-slate-400 font-bold sticky top-0 bg-white/90">
               <th className="py-2.5">School Name</th>
-              <th className="py-2.5">Code</th>
               <th className="py-2.5 text-center">Registrations</th>
               <th className="py-2.5 text-center">Attendance</th>
               <th className="py-2.5 text-right">Check-in %</th>
@@ -58,7 +57,6 @@ export default function SchoolEngagementTable({ data = [], onSchoolClick }: Scho
                       <ExternalLink className="w-3 h-3 text-blue-400 group-hover:text-blue-600 flex-shrink-0" />
                     </button>
                   </td>
-                  <td className="py-3 text-slate-500 uppercase font-mono text-[11px]">{sch.code}</td>
                   <td className="py-3 text-center font-bold text-slate-700">{sch.studentsCount}</td>
                   <td className="py-3 text-center text-slate-600">{sch.attendanceCount}</td>
                   <td className="py-3 text-right text-blue-600 font-bold">{rate}%</td>
@@ -67,7 +65,7 @@ export default function SchoolEngagementTable({ data = [], onSchoolClick }: Scho
             })}
             {data.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-400">
+                <td colSpan={4} className="py-8 text-center text-slate-400">
                   No schools active in current event registrations.
                 </td>
               </tr>

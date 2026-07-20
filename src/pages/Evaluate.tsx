@@ -247,11 +247,8 @@ export default function Evaluate() {
 
                 <button
                   onClick={() => handleOpenEvaluation(proj)}
-                  disabled={proj.status === "Registered" /* Can't evaluate unless checked in */}
                   className={`font-bold px-3 py-2 rounded-xl text-[10px] shadow-sm cursor-pointer flex items-center gap-1 transition-all ${
-                    proj.status === "Registered"
-                      ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
-                      : isLocked
+                    isLocked
                       ? "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
                       : "bg-blue-600 hover:bg-blue-700 text-white"
                   }`}
