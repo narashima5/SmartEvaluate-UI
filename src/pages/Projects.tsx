@@ -15,15 +15,15 @@ import {
 } from "lucide-react";
 import type { Project, Event, Domain } from "../types";
 
-const DOMAINS: Domain[] = [
-  "AI / Generative AI",
-  "Cybersecurity",
-  "IoT & Smart Cities",
-  "Disaster Prediction & Response",
-  "Healthcare Technology",
-  "Climate & Environmental Intelligence",
-  "Open Innovation",
-];
+// const DOMAINS: Domain[] = [
+//   "AI / Generative AI",
+//   "Cybersecurity",
+//   "IoT & Smart Cities",
+//   "Disaster Prediction & Response",
+//   "Healthcare Technology",
+//   "Climate & Environmental Intelligence",
+//   "Open Innovation",
+// ];
 
 export default function Projects() {
   const { user } = useAuth();
