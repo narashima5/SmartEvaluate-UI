@@ -33,10 +33,10 @@ export const apiClient = async (endpoint: string, options: RequestOptions = {}) 
 
   if (response.status === 401 || response.status === 403) {
     const errorData = await response.json().catch(() => ({}));
-    if (errorData.error === "Your account is pending admin approval.") {
+    if (response.status === 403 && errorData.error && errorData.error !== "Invalid or expired token." && errorData.error !== "Access denied. No token provided.") {
       throw new Error(errorData.error);
     }
-    // Session expired or invalid
+    // Session expired or invalid token
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     if (window.location.pathname !== "/login") {
