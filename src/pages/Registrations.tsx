@@ -499,6 +499,7 @@ export default function Registrations() {
             <thead>
               <tr className="border-b border-slate-100 text-slate-400 font-bold bg-slate-50/50">
                 <th className="p-4">Reg Number</th>
+                <th className="p-4">Team Name</th>
                 <th className="p-4">Student Name</th>
                 <th className="p-4">Category</th>
                 <th className="p-4">Class & Section</th>
@@ -512,6 +513,7 @@ export default function Registrations() {
               {students.map((st) => (
                 <tr key={st._id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="p-4 font-bold text-blue-600">{st.registrationNumber}</td>
+                  <td className="p-4 font-bold text-blue-600">{st.teamName || "NA"}</td>
                   <td className="p-4">
                     <div className="flex flex-col gap-0.5">
                       <span className="font-bold text-slate-800">{st.name}</span>
@@ -521,8 +523,8 @@ export default function Registrations() {
                   <td className="p-4">
                     <span
                       className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${st.category === "Visitor"
-                          ? "bg-slate-50 text-slate-600 border-slate-200"
-                          : "bg-blue-50 text-blue-600 border-blue-100"
+                        ? "bg-slate-50 text-slate-600 border-slate-200"
+                        : "bg-blue-50 text-blue-600 border-blue-100"
                         }`}
                     >
                       {st.category}
@@ -597,8 +599,8 @@ export default function Registrations() {
                 <div className="flex flex-col items-end gap-1.5">
                   <span
                     className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${st.category === "Visitor"
-                        ? "bg-slate-50 text-slate-600 border-slate-200"
-                        : "bg-blue-50 text-blue-600 border-blue-100"
+                      ? "bg-slate-50 text-slate-600 border-slate-200"
+                      : "bg-blue-50 text-blue-600 border-blue-100"
                       }`}
                   >
                     {st.category}

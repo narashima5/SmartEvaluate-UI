@@ -66,6 +66,7 @@ export interface Student {
   phone: string;
   category: "Visitor" | "Project Presenter";
   registrationNumber: string;
+  teamName?: string;
   ticketGenerated: boolean;
   checkedIn: boolean;
   createdAt?: string;
