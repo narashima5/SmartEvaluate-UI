@@ -126,6 +126,19 @@ export default function Projects() {
   };
 
 
+  const handleViewDetails = async (project: Project) => {
+    setSelectedProject(null);
+    setDetailProject(project);
+    try {
+      const fullProj = await api.get(`/api/projects/${project._id}`);
+      if (fullProj && fullProj._id) {
+        setDetailProject(fullProj);
+      }
+    } catch (err) {
+      console.error("Failed to load full project details", err);
+    }
+  };
+
   const handleOpenStallModal = (project: Project) => {
     setSelectedProject(project);
     setStallNumber(project.stallNumber || "");
@@ -247,7 +260,7 @@ export default function Projects() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end ml-auto">
-          <div className="flex items-center gap-1.5">
+          {/* <div className="flex items-center gap-1.5">
             <label className="text-xs font-bold text-slate-400 uppercase">Domain:</label>
             <select
               value={domainFilter}
@@ -261,9 +274,9 @@ export default function Projects() {
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-end gap-1.5">
             <label className="text-xs font-bold text-slate-400 uppercase">Status:</label>
             <select
               value={statusFilter}
@@ -288,7 +301,7 @@ export default function Projects() {
             proj={proj}
             isAdminOrEventCoordinator={isAdminOrEventCoordinator}
             onOpenStallModal={handleOpenStallModal}
-            onViewDetails={setDetailProject}
+            onViewDetails={handleViewDetails}
             onUnlockEvaluation={handleUnlockEvaluation}
           />
         ))}
@@ -310,7 +323,7 @@ export default function Projects() {
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <h3 className="font-extrabold text-slate-800 text-base mb-2">Assign Stall Number</h3>
             <p className="text-[11px] text-slate-400 mb-4 leading-normal">
               Enter a custom stall coordinates identifier for project <span className="font-bold text-slate-700">{selectedProject.projectId}</span>.
@@ -361,7 +374,7 @@ export default function Projects() {
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <h3 className="font-extrabold text-slate-800 text-base mb-4 border-b border-slate-100 pb-3 flex items-center gap-2">
               <span className="text-[10px] font-bold text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded border border-blue-100">{detailProject.projectId}</span>
               <span>Project & Team Details</span>
