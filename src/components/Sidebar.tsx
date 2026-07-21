@@ -45,6 +45,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         return [
           { path: "/dashboard", label: "Analytics Dashboard", icon: LayoutDashboard },
           { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
+          { path: "/users", label: "User Management", icon: UserCircle },
           { path: "/events", label: "Manage Events", icon: Calendar },
           { path: "/schools", label: "Manage Schools", icon: SchoolIcon },
           { path: "/criteria", label: "Evaluation Criteria", icon: Award },

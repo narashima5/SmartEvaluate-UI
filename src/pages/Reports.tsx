@@ -2,12 +2,10 @@ import { useState, useEffect } from "react";
 import { api } from "../utils/api";
 import GlassCard from "../components/GlassCard";
 import {
-  FileSpreadsheet,
   Download,
   Users,
   CheckSquare,
   Award,
-  History,
   School as SchoolIcon,
   Loader2,
   Sparkles,
@@ -130,13 +128,6 @@ export default function Reports() {
       color: "bg-emerald-50 text-emerald-600 border-emerald-100",
     },
     {
-      id: "evaluations",
-      title: "Jury Score sheets",
-      desc: "Detailed rubric score cards and aggregate evaluations of projects submitted by all jury panels.",
-      icon: FileSpreadsheet,
-      color: "bg-indigo-50 text-indigo-600 border-indigo-100",
-    },
-    {
       id: "winners",
       title: "Ranked Winner Lists",
       desc: "Project teams sorted by aggregate jury evaluation score per category to determine winners.",
@@ -149,13 +140,6 @@ export default function Reports() {
       desc: "Aggregate engagement summaries per school containing registration count, attendance count, and entry ratio.",
       icon: SchoolIcon,
       color: "bg-purple-50 text-purple-600 border-purple-100",
-    },
-    {
-      id: "audits",
-      title: "System Audit Trails",
-      desc: "Administrator operations trail logging core activities, updates, profile changes, and database modifications.",
-      icon: History,
-      color: "bg-slate-100 text-slate-600 border-slate-200",
     },
   ];
 

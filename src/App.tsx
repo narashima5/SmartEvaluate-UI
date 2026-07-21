@@ -17,6 +17,7 @@ import Reports from "./pages/Reports";
 import Audits from "./pages/Audits";
 import Criteria from "./pages/Criteria";
 import Leaderboard from "./pages/Leaderboard";
+import Users from "./pages/Users";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ShieldAlert, LogOut } from "lucide-react";
@@ -110,6 +111,7 @@ function App() {
 
             {/* Super Admin Only */}
             <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
+              <Route path="users" element={<Users />} />
               <Route path="events" element={<Events />} />
               <Route path="criteria" element={<Criteria />} />
               <Route path="audits" element={<Audits />} />
