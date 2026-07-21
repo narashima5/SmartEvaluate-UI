@@ -41,6 +41,71 @@ export default function Projects() {
   const [stallNumber, setStallNumber] = useState("");
   const [detailProject, setDetailProject] = useState<Project | null>(null);
 
+  // Jury Evaluations for detail modal
+  const [projectEvaluations, setProjectEvaluations] = useState<any[]>([]);
+  const [loadingEvals, setLoadingEvals] = useState(false);
+  const [editingEval, setEditingEval] = useState<any | null>(null);
+  const [editScores, setEditScores] = useState<any[]>([]);
+  const [editRemarks, setEditRemarks] = useState("");
+  const [savingEval, setSavingEval] = useState(false);
+
+  const fetchProjectEvaluations = async (projectId: string) => {
+    setLoadingEvals(true);
+    try {
+      const data = await api.get(`/api/evaluations/project/${projectId}`);
+      setProjectEvaluations(data || []);
+    } catch (err) {
+      console.error("Failed to load project evaluations", err);
+      setProjectEvaluations([]);
+    } finally {
+      setLoadingEvals(false);
+    }
+  };
+
+  const handleViewDetails = async (project: Project) => {
+    setSelectedProject(null);
+    setDetailProject(project);
+    fetchProjectEvaluations(project._id);
+    try {
+      const fullProj = await api.get(`/api/projects/${project._id}`);
+      if (fullProj && fullProj._id) {
+        setDetailProject(fullProj);
+      }
+    } catch (err) {
+      console.error("Failed to load full project details", err);
+    }
+  };
+
+  const handleOpenEditEval = (evalItem: any) => {
+    setEditingEval(evalItem);
+    setEditScores(evalItem.scores ? JSON.parse(JSON.stringify(evalItem.scores)) : []);
+    setEditRemarks(evalItem.remarks || "");
+  };
+
+  const handleSaveAdminEval = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEval) return;
+    setSavingEval(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await api.put(`/api/evaluations/${editingEval._id}`, {
+        scores: editScores,
+        remarks: editRemarks,
+      });
+      setSuccess("Jury evaluation marks updated successfully.");
+      setEditingEval(null);
+      if (detailProject) {
+        fetchProjectEvaluations(detailProject._id);
+      }
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    } catch (err: any) {
+      setError(err.message || "Failed to update jury evaluation.");
+    } finally {
+      setSavingEval(false);
+    }
+  };
+
   // 1. Fetch Active Event Query
   const { data: activeEvent = null, isLoading: isActiveEventLoading } = useQuery<Event | null>({
     queryKey: ["active-event"],
@@ -122,20 +187,6 @@ export default function Projects() {
       setError(null);
       setSuccess(null);
       unlockEvaluationMutation.mutate(projectId);
-    }
-  };
-
-
-  const handleViewDetails = async (project: Project) => {
-    setSelectedProject(null);
-    setDetailProject(project);
-    try {
-      const fullProj = await api.get(`/api/projects/${project._id}`);
-      if (fullProj && fullProj._id) {
-        setDetailProject(fullProj);
-      }
-    } catch (err) {
-      console.error("Failed to load full project details", err);
     }
   };
 
@@ -497,7 +548,144 @@ export default function Projects() {
                   )}
                 </div>
               </div>
+
+              {/* Jury Evaluations & Awarded Marks */}
+              <div className="flex flex-col gap-3 border-t border-slate-100 pt-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-extrabold text-slate-800 uppercase text-[10px] tracking-wider">
+                    Jury Evaluations ({projectEvaluations.length})
+                  </h4>
+                  <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
+                    Average Score: {detailProject.score || 0} pts
+                  </span>
+                </div>
+
+                {loadingEvals ? (
+                  <div className="text-center text-xs text-slate-400 py-4">Loading jury evaluations...</div>
+                ) : projectEvaluations.length === 0 ? (
+                  <div className="text-center text-xs text-slate-400 py-3 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    No evaluations submitted yet for this project.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {projectEvaluations.map((ev: any, idx: number) => {
+                      const juryName = ev.jury?.username || ev.jury?.email || `Jury #${idx + 1}`;
+                      return (
+                        <div key={ev._id || idx} className="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm flex flex-col gap-2.5">
+                          <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-800 text-xs">{juryName}</span>
+                              <span className="text-[9px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100 font-mono">
+                                Total: {ev.totalMarks} pts
+                              </span>
+                            </div>
+
+                            {isAdminOrEventCoordinator && (
+                              <button
+                                onClick={() => handleOpenEditEval(ev)}
+                                className="px-2.5 py-1 text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 cursor-pointer transition-colors"
+                              >
+                                Edit Marks
+                              </button>
+                            )}
+                          </div>
+
+                          {ev.remarks && (
+                            <p className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-xl italic">
+                              "{ev.remarks}"
+                            </p>
+                          )}
+
+                          {ev.scores && ev.scores.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {ev.scores.map((s: any, sIdx: number) => (
+                                <span key={sIdx} className="text-[9px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200/60">
+                                  {s.criteriaName || `Criteria ${sIdx + 1}`}: <strong className="text-slate-800">{s.score}</strong>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {/* Admin Edit Evaluation Modal */}
+      {editingEval && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <GlassCard className="w-full max-w-md p-6 bg-white border-slate-200/50 shadow-2xl relative my-8">
+            <button
+              onClick={() => setEditingEval(null)}
+              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="font-extrabold text-slate-800 text-base mb-1">Edit Jury Evaluation Marks</h3>
+            <p className="text-xs text-slate-500 font-bold mb-4 font-mono">
+              Jury: {editingEval.jury?.username || editingEval.jury?.email || "Assigned Jury"}
+            </p>
+
+            <form onSubmit={handleSaveAdminEval} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 max-h-[40vh] overflow-y-auto pr-1">
+                {editScores.map((s: any, idx: number) => (
+                  <div key={idx} className="flex flex-col gap-1 border-b border-slate-100 pb-2.5">
+                    <span className="text-xs font-bold text-slate-700">{s.criteriaName || `Criteria #${idx + 1}`}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={s.score}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        const newScores = [...editScores];
+                        newScores[idx].score = val;
+                        setEditScores(newScores);
+                      }}
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-blue-500 font-semibold"
+                      required
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Jury Remarks</label>
+                <textarea
+                  value={editRemarks}
+                  onChange={(e) => setEditRemarks(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-slate-50 font-medium"
+                />
+              </div>
+
+              <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                <span className="text-xs font-extrabold text-blue-600 font-mono">
+                  New Total: {editScores.reduce((sum: number, s: any) => sum + (Number(s.score) || 0), 0)} pts
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingEval(null)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingEval}
+                    className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
+                  >
+                    {savingEval ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </div>
+            </form>
           </GlassCard>
         </div>
       )}
