@@ -127,7 +127,7 @@ export default function Registrations() {
   }, [activeEvent, search, categoryFilter, schoolFilter, classFilter]);
 
   const handleAddMember = () => {
-    if (members.length >= 4) return; // Limit 4 per project
+    if (members.length >= 10) return; // Limit 10 per project
     setMembers((prev) => [
       ...prev,
       { name: "", gender: "Male", dob: "", class: "", section: "", emergencyContact: "", phone: "" },
@@ -987,8 +987,8 @@ export default function Registrations() {
               {/* Members section */}
               <div className="border-t border-slate-100 pt-4 flex flex-col gap-4">
                 <div className="flex justify-between items-center">
-                  <h4 className="font-bold text-slate-700 text-xs">Team Members (1-4 Students)</h4>
-                  {members.length < 4 && (
+                  <h4 className="font-bold text-slate-700 text-xs">Team Members (1-10 Students)</h4>
+                  {members.length < 10 && (
                     <button
                       type="button"
                       onClick={handleAddMember}

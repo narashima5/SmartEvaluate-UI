@@ -94,7 +94,7 @@ export default function Scanner() {
   }, [activeEvent, search, categoryFilter, schoolFilter, classFilter]);
 
   const handleAddMember = () => {
-    if (members.length >= 4) return;
+    if (members.length >= 10) return;
     setMembers((prev) => [
       ...prev,
       { name: "", gender: "Male", dob: "", class: "", section: "", emergencyContact: "", phone: "" },
@@ -610,8 +610,8 @@ export default function Scanner() {
               {/* Members */}
               <div className="flex flex-col gap-3 border-t border-slate-100 pt-3">
                 <div className="flex justify-between items-center">
-                  <label className="text-xs font-bold text-slate-700">Team Members (Max 4)</label>
-                  {members.length < 4 && (
+                  <label className="text-xs font-bold text-slate-700">Team Members (Max 10)</label>
+                  {members.length < 10 && (
                     <button
                       type="button"
                       onClick={handleAddMember}
