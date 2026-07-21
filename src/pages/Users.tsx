@@ -213,17 +213,15 @@ export default function Users() {
           <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
               onClick={() => setActiveTab("users")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === "users" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === "users" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                }`}
             >
               All Users ({usersList.length})
             </button>
             <button
               onClick={() => setActiveTab("jury")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === "jury" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeTab === "jury" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                }`}
             >
               Jury Evaluations ({juryMembers.length})
             </button>
@@ -324,17 +322,16 @@ export default function Users() {
                           <td className="p-4 text-slate-600 font-medium">{u.email}</td>
                           <td className="p-4">
                             <span
-                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
-                                u.role === "super_admin"
-                                  ? "bg-purple-50 text-purple-700 border-purple-100"
-                                  : u.role === "jury"
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${u.role === "super_admin"
+                                ? "bg-purple-50 text-purple-700 border-purple-100"
+                                : u.role === "jury"
                                   ? "bg-blue-50 text-blue-700 border-blue-100"
                                   : u.role === "school_coordinator"
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                  : u.role === "event_coordinator"
-                                  ? "bg-indigo-50 text-indigo-700 border-indigo-100"
-                                  : "bg-amber-50 text-amber-700 border-amber-100"
-                              }`}
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                    : u.role === "event_coordinator"
+                                      ? "bg-indigo-50 text-indigo-700 border-indigo-100"
+                                      : "bg-amber-50 text-amber-700 border-amber-100"
+                                }`}
                             >
                               {u.role.replace("_", " ")}
                             </span>
@@ -346,11 +343,10 @@ export default function Users() {
                           </td>
                           <td className="p-4 text-center">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
-                                u.isApproved !== false
-                                  ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                                  : "bg-amber-50 text-amber-600 border-amber-100"
-                              }`}
+                              className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${u.isApproved !== false
+                                ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                : "bg-amber-50 text-amber-600 border-amber-100"
+                                }`}
                             >
                               {u.isApproved !== false ? "Approved" : "Pending"}
                             </span>
@@ -364,13 +360,16 @@ export default function Users() {
                               >
                                 <Edit2 className="w-4 h-4" />
                               </button>
-                              <button
-                                onClick={() => handleDeleteUser(u)}
-                                className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                                title="Delete User"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {u.role !== "super_admin" && (
+                                <button
+                                  onClick={() => handleDeleteUser(u)}
+                                  className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Delete User"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+
                             </div>
                           </td>
                         </tr>
@@ -389,289 +388,296 @@ export default function Users() {
               </div>
             )}
           </GlassCard>
-        </div>
-      )}
+        </div >
+      )
+      }
 
       {/* TAB 2: JURY MEMBERS & EVALUATED STUDENTS */}
-      {activeTab === "jury" && (
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {juryMembers.map((j) => (
-              <GlassCard
-                key={j.id || (j as any)._id}
-                className="p-5 border-slate-200/50 bg-white/70 shadow-sm flex flex-col justify-between gap-4"
-              >
-                <div className="flex flex-col gap-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-700 font-extrabold text-sm flex items-center justify-center uppercase">
-                        {j.username.charAt(0)}
+      {
+        activeTab === "jury" && (
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {juryMembers.map((j) => (
+                <GlassCard
+                  key={j.id || (j as any)._id}
+                  className="p-5 border-slate-200/50 bg-white/70 shadow-sm flex flex-col justify-between gap-4"
+                >
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-700 font-extrabold text-sm flex items-center justify-center uppercase">
+                          {j.username.charAt(0)}
+                        </div>
+                        <div className="flex flex-col">
+                          <h4 className="font-bold text-slate-800 text-sm leading-snug">{j.username}</h4>
+                          <span className="text-xs text-slate-500">{j.email}</span>
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <h4 className="font-bold text-slate-800 text-sm leading-snug">{j.username}</h4>
-                        <span className="text-xs text-slate-500">{j.email}</span>
-                      </div>
+                      <span className="text-[9px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100 uppercase">
+                        Jury
+                      </span>
                     </div>
-                    <span className="text-[9px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100 uppercase">
-                      Jury
-                    </span>
+
+                    {j.target_domain && (
+                      <div className="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-100 p-2 rounded-xl flex items-center gap-1.5 mt-2">
+                        <Layers className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Domain: <strong>{j.target_domain}</strong></span>
+                      </div>
+                    )}
                   </div>
 
-                  {j.target_domain && (
-                    <div className="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-100 p-2 rounded-xl flex items-center gap-1.5 mt-2">
-                      <Layers className="w-3.5 h-3.5 text-blue-500" />
-                      <span>Domain: <strong>{j.target_domain}</strong></span>
-                    </div>
-                  )}
+                  <button
+                    onClick={() => handleViewJuryEvaluations(j)}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all mt-2"
+                  >
+                    <Award className="w-4 h-4 text-amber-400" />
+                    <span>View Evaluated Students & Marks</span>
+                  </button>
+                </GlassCard>
+              ))}
+
+              {juryMembers.length === 0 && (
+                <div className="col-span-full bg-white border border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400 text-xs">
+                  No Jury members registered in the system.
                 </div>
-
-                <button
-                  onClick={() => handleViewJuryEvaluations(j)}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all mt-2"
-                >
-                  <Award className="w-4 h-4 text-amber-400" />
-                  <span>View Evaluated Students & Marks</span>
-                </button>
-              </GlassCard>
-            ))}
-
-            {juryMembers.length === 0 && (
-              <div className="col-span-full bg-white border border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400 text-xs">
-                No Jury members registered in the system.
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Add / Edit User Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <GlassCard className="w-full max-w-md p-6 bg-white border-slate-200/50 shadow-2xl relative my-8">
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      {
+        showModal && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <GlassCard className="w-full max-w-md p-6 bg-white border-slate-200/50 shadow-2xl relative my-8">
+              <button
+                onClick={() => setShowModal(false)}
+                className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-            <h3 className="font-extrabold text-slate-800 text-base mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <UsersIcon className="w-5 h-5 text-blue-600" />
-              <span>{editingUser ? "Edit User Account" : "Create New User Account"}</span>
-            </h3>
+              <h3 className="font-extrabold text-slate-800 text-base mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
+                <UsersIcon className="w-5 h-5 text-blue-600" />
+                <span>{editingUser ? "Edit User Account" : "Create New User Account"}</span>
+              </h3>
 
-            <form onSubmit={handleSaveUser} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Username *</label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="john_doe"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
-                  required
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Email Address *</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="john@example.com"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
-                  required
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">
-                  {editingUser ? "Password (Leave blank to keep existing)" : "Password *"}
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
-                  required={!editingUser}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">User Role *</label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white font-semibold"
-                >
-                  <option value="super_admin">Super Admin</option>
-                  <option value="event_coordinator">Event Coordinator</option>
-                  <option value="school_coordinator">School Coordinator</option>
-                  <option value="jury">Jury Member</option>
-                  <option value="volunteer">Volunteer</option>
-                </select>
-              </div>
-
-              {role === "school_coordinator" && (
+              <form onSubmit={handleSaveUser} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Assigned School *</label>
-                  <select
-                    value={schoolId}
-                    onChange={(e) => setSchoolId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
-                    required
-                  >
-                    <option value="">Select a school...</option>
-                    {schools.map((s) => (
-                      <option key={s._id} value={s._id}>
-                        {s.name} ({s.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {role === "jury" && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Target Domain Filter (Optional)</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Username *</label>
                   <input
                     type="text"
-                    value={targetDomain}
-                    onChange={(e) => setTargetDomain(e.target.value)}
-                    placeholder="e.g. Robotics, Environmental Science"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="john_doe"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required
                   />
                 </div>
-              )}
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-md mt-2 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-              >
-                {submitting ? "Saving..." : editingUser ? "Update Account" : "Create Account"}
-              </button>
-            </form>
-          </GlassCard>
-        </div>
-      )}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Email Address *</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="john@example.com"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">
+                    {editingUser ? "Password (Leave blank to keep existing)" : "Password *"}
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    required={!editingUser}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">User Role *</label>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white font-semibold"
+                  >
+                    <option value="super_admin">Super Admin</option>
+                    <option value="event_coordinator">Event Coordinator</option>
+                    <option value="school_coordinator">School Coordinator</option>
+                    <option value="jury">Jury Member</option>
+                    <option value="volunteer">Volunteer</option>
+                  </select>
+                </div>
+
+                {role === "school_coordinator" && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Assigned School *</label>
+                    <select
+                      value={schoolId}
+                      onChange={(e) => setSchoolId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                      required
+                    >
+                      <option value="">Select a school...</option>
+                      {schools.map((s) => (
+                        <option key={s._id} value={s._id}>
+                          {s.name} ({s.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {role === "jury" && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Target Domain Filter (Optional)</label>
+                    <input
+                      type="text"
+                      value={targetDomain}
+                      onChange={(e) => setTargetDomain(e.target.value)}
+                      placeholder="e.g. Robotics, Environmental Science"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white"
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-md mt-2 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                >
+                  {submitting ? "Saving..." : editingUser ? "Update Account" : "Create Account"}
+                </button>
+              </form>
+            </GlassCard>
+          </div>
+        )
+      }
 
       {/* Jury Evaluated Students & Marks Breakdown Modal */}
-      {selectedJury && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <GlassCard className="w-full max-w-3xl p-6 bg-white border-slate-200/50 shadow-2xl relative my-8 max-h-[85vh] overflow-y-auto">
-            <button
-              onClick={() => setSelectedJury(null)}
-              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      {
+        selectedJury && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <GlassCard className="w-full max-w-3xl p-6 bg-white border-slate-200/50 shadow-2xl relative my-8 max-h-[85vh] overflow-y-auto">
+              <button
+                onClick={() => setSelectedJury(null)}
+                className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-700 font-extrabold text-sm flex items-center justify-center uppercase">
-                {selectedJury.username.charAt(0)}
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
+                <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-700 font-extrabold text-sm flex items-center justify-center uppercase">
+                  {selectedJury.username.charAt(0)}
+                </div>
+                <div className="flex flex-col">
+                  <h3 className="font-extrabold text-slate-800 text-base leading-snug">
+                    Evaluated Students & Projects — {selectedJury.username}
+                  </h3>
+                  <span className="text-xs text-slate-500 font-medium">{selectedJury.email}</span>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <h3 className="font-extrabold text-slate-800 text-base leading-snug">
-                  Evaluated Students & Projects — {selectedJury.username}
-                </h3>
-                <span className="text-xs text-slate-500 font-medium">{selectedJury.email}</span>
-              </div>
-            </div>
 
-            {loadingEvals ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                <span className="text-xs text-slate-400 font-medium">Fetching evaluation records...</span>
-              </div>
-            ) : juryEvals.length === 0 ? (
-              <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400 text-xs">
-                This jury member has not submitted any project evaluations yet.
-              </div>
-            ) : (
-              <div className="flex flex-col gap-6">
-                {juryEvals.map((ev, idx) => {
-                  const proj = ev.project || {};
-                  const members = proj.members || [];
-                  return (
-                    <div key={ev._id || idx} className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 flex flex-col gap-4">
-                      {/* Project Header */}
-                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-200/80 pb-3">
-                        <div className="flex flex-col gap-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                              {proj.projectId || "PRJ"}
-                            </span>
-                            <span className="font-bold text-slate-800 text-sm">{proj.title || "Untitled Project"}</span>
+              {loadingEvals ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                  <span className="text-xs text-slate-400 font-medium">Fetching evaluation records...</span>
+                </div>
+              ) : juryEvals.length === 0 ? (
+                <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400 text-xs">
+                  This jury member has not submitted any project evaluations yet.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-6">
+                  {juryEvals.map((ev, idx) => {
+                    const proj = ev.project || {};
+                    const members = proj.members || [];
+                    return (
+                      <div key={ev._id || idx} className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 flex flex-col gap-4">
+                        {/* Project Header */}
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-200/80 pb-3">
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                                {proj.projectId || "PRJ"}
+                              </span>
+                              <span className="font-bold text-slate-800 text-sm">{proj.title || "Untitled Project"}</span>
+                            </div>
+                            <span className="text-xs text-slate-500 font-medium">Team: {proj.teamName || "N/A"}</span>
                           </div>
-                          <span className="text-xs text-slate-500 font-medium">Team: {proj.teamName || "N/A"}</span>
-                        </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-blue-700 bg-blue-100/70 px-3 py-1 rounded-xl border border-blue-200 font-mono">
-                            Awarded: {ev.totalMarks} pts
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Criteria breakdown */}
-                      {ev.scores && ev.scores.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {ev.scores.map((s: any, sIdx: number) => (
-                            <span key={sIdx} className="text-[10px] font-semibold bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-600">
-                              {s.criteriaName || `Criteria ${sIdx + 1}`}: <strong className="text-slate-800 font-bold">{s.score}</strong>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-blue-700 bg-blue-100/70 px-3 py-1 rounded-xl border border-blue-200 font-mono">
+                              Awarded: {ev.totalMarks} pts
                             </span>
-                          ))}
+                          </div>
                         </div>
-                      )}
 
-                      {ev.remarks && (
-                        <p className="text-xs text-slate-600 bg-white p-2.5 rounded-xl border border-slate-100 italic">
-                          "{ev.remarks}"
-                        </p>
-                      )}
+                        {/* Criteria breakdown */}
+                        {ev.scores && ev.scores.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {ev.scores.map((s: any, sIdx: number) => (
+                              <span key={sIdx} className="text-[10px] font-semibold bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-600">
+                                {s.criteriaName || `Criteria ${sIdx + 1}`}: <strong className="text-slate-800 font-bold">{s.score}</strong>
+                              </span>
+                            ))}
+                          </div>
+                        )}
 
-                      {/* Students List */}
-                      <div className="flex flex-col gap-2">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Evaluated Students ({members.length})
-                        </span>
+                        {ev.remarks && (
+                          <p className="text-xs text-slate-600 bg-white p-2.5 rounded-xl border border-slate-100 italic">
+                            "{ev.remarks}"
+                          </p>
+                        )}
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {members.map((m: any, mIdx: number) => {
-                            const schoolName = typeof m.school === "object" ? m.school?.name : "N/A";
-                            return (
-                              <div key={m._id || mIdx} className="bg-white border border-slate-200/80 rounded-xl p-3 flex flex-col gap-1.5 text-xs">
-                                <div className="flex justify-between items-center">
-                                  <span className="font-bold text-slate-800">{m.name}</span>
-                                  <span className="text-[9px] font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
-                                    {m.registrationNumber || "N/A"}
-                                  </span>
+                        {/* Students List */}
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Evaluated Students ({members.length})
+                          </span>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {members.map((m: any, mIdx: number) => {
+                              const schoolName = typeof m.school === "object" ? m.school?.name : "N/A";
+                              return (
+                                <div key={m._id || mIdx} className="bg-white border border-slate-200/80 rounded-xl p-3 flex flex-col gap-1.5 text-xs">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-bold text-slate-800">{m.name}</span>
+                                    <span className="text-[9px] font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                                      {m.registrationNumber || "N/A"}
+                                    </span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-500">
+                                    <span>Class: <strong>{m.class ? `${m.class}-${m.section}` : "N/A"}</strong></span>
+                                    <span>Phone: <strong>{m.phone || m.emergencyContact || "N/A"}</strong></span>
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 truncate">School: {schoolName}</span>
                                 </div>
-                                <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-500">
-                                  <span>Class: <strong>{m.class ? `${m.class}-${m.section}` : "N/A"}</strong></span>
-                                  <span>Phone: <strong>{m.phone || m.emergencyContact || "N/A"}</strong></span>
-                                </div>
-                                <span className="text-[10px] text-slate-400 truncate">School: {schoolName}</span>
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
 
-                          {members.length === 0 && (
-                            <span className="text-xs text-slate-400 italic">No student members found for this project.</span>
-                          )}
+                            {members.length === 0 && (
+                              <span className="text-xs text-slate-400 italic">No student members found for this project.</span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </GlassCard>
-        </div>
-      )}
-    </div>
+                    );
+                  })}
+                </div>
+              )}
+            </GlassCard>
+          </div>
+        )
+      }
+    </div >
   );
 }
